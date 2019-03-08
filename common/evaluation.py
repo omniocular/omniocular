@@ -1,4 +1,4 @@
-from common.evaluators.diff_evaluator import DiffEvaluator
+from common.evaluators.diff_string_evaluator import DiffStringEvaluator
 
 
 class EvaluatorFactory(object):
@@ -6,7 +6,7 @@ class EvaluatorFactory(object):
     Get the corresponding Evaluator class for a particular dataset.
     """
     evaluator_map = {
-        'VulasDiff': DiffEvaluator
+        'VulasDiff': DiffStringEvaluator
     }
 
     @staticmethod
