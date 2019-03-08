@@ -10,10 +10,10 @@ from tensorboardX import SummaryWriter
 from .trainer import Trainer
 
 
-class DiffTrainer(Trainer):
+class DiffStringTrainer(Trainer):
 
     def __init__(self, model, embedding, train_loader, trainer_config, train_evaluator, test_evaluator, dev_evaluator):
-        super(DiffTrainer, self).__init__(model, embedding, train_loader, trainer_config, train_evaluator, test_evaluator, dev_evaluator)
+        super(DiffStringTrainer, self).__init__(model, embedding, train_loader, trainer_config, train_evaluator, test_evaluator, dev_evaluator)
         self.config = trainer_config
         self.early_stop = False
         self.best_dev_f1 = 0
