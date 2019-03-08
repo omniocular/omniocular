@@ -37,8 +37,10 @@ def split_sents(string, max_length=40):
 
 def char_quantize(string, max_length=1000):
     identity = np.identity(len(VulasDiffCharQuantized.ALPHABET))
-    quantized_string = np.array([identity[VulasDiffCharQuantized.ALPHABET[char]] for char in list(string.lower()) if
+    quantized_string = np.array([identity[VulasDiffCharQuantized.ALPHABET[char]]
+                                 for char in list(string.lower()) if
                                  char in VulasDiffCharQuantized.ALPHABET], dtype=np.float32)
+
     if len(quantized_string) > max_length:
         return quantized_string[:max_length]
     else:
