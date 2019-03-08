@@ -1,4 +1,4 @@
-from common.evaluators.reuters_evaluator import ReutersEvaluator
+from common.evaluators.diff_evaluator import DiffEvaluator
 
 
 class EvaluatorFactory(object):
@@ -6,7 +6,7 @@ class EvaluatorFactory(object):
     Get the corresponding Evaluator class for a particular dataset.
     """
     evaluator_map = {
-        'IMDB': ReutersEvaluator
+        'VulasDiff': DiffEvaluator
     }
 
     @staticmethod
