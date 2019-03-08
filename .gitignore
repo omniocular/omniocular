@@ -1,1 +1,5 @@
 tensorboard_logs
+
+\.idea/
+
+\.directory
