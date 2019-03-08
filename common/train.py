@@ -1,4 +1,4 @@
-from .trainers.reuters_trainer import ReutersTrainer
+from .trainers.diff_trainer import DiffTrainer
 
 
 class TrainerFactory(object):
@@ -6,7 +6,7 @@ class TrainerFactory(object):
     Get the corresponding Trainer class for a particular dataset.
     """
     trainer_map = {
-        'IMDB': ReutersTrainer
+        'VulasDiff': DiffTrainer
     }
 
     @staticmethod
