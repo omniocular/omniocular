@@ -1,11 +1,18 @@
+import csv
 import os
+import random
 import re
+import sys
 
 import numpy as np
 import torch
+from nltk import tokenize
 from torchtext.data import NestedField, Field, TabularDataset
 from torchtext.data.iterator import BucketIterator
 from torchtext.vocab import Vectors
+
+# Increase the upper limit on parsed fields
+csv.field_size_limit(sys.maxsize)
 
 
 def clean_string(string, sentence_droprate=0, max_length=5000):
@@ -29,12 +36,22 @@ def split_sents(string, max_length=40):
 
 
 def char_quantize(string, max_length=1000):
-    identity = np.identity(len(ReutersCharQuantized.ALPHABET))
-    quantized_string = np.array([identity[ReutersCharQuantized.ALPHABET[char]] for char in list(string.lower()) if char in ReutersCharQuantized.ALPHABET], dtype=np.float32)
+    identity = np.identity(len(VulasDiffCharQuantized.ALPHABET))
+    quantized_string = np.array([identity[VulasDiffCharQuantized.ALPHABET[char]]
+                                 for char in list(string.lower()) if
+                                 char in VulasDiffCharQuantized.ALPHABET], dtype=np.float32)
+
     if len(quantized_string) > max_length:
         return quantized_string[:max_length]
     else:
-        return np.concatenate((quantized_string, np.zeros((max_length - len(quantized_string), len(ReutersCharQuantized.ALPHABET)), dtype=np.float32)))
+        return np.concatenate((quantized_string, np.zeros((
+            max_length - len(quantized_string),
+            len(VulasDiffCharQuantized.ALPHABET)),
+            dtype=np.float32)))
+
+
+def remove_field(string):
+    return 0
 
 
 def process_labels(string):
@@ -46,9 +63,11 @@ def process_labels(string):
     return [float(x) for x in string]
 
 
-class IMDB(TabularDataset):
-    NAME = 'IMDB'
-    NUM_CLASSES = 10
+class VulasDiff(TabularDataset):
+    NAME = 'VulasDiff'
+    NUM_CLASSES = 2
+    REPO_FIELD = Field(sequential=False, use_vocab=False, batch_first=True, preprocessing=remove_field)
+    SHA_FIELD = Field(sequential=False, use_vocab=False, batch_first=True, preprocessing=remove_field)
     TEXT_FIELD = Field(batch_first=True, tokenize=clean_string, include_lengths=True)
     LABEL_FIELD = Field(sequential=False, use_vocab=False, batch_first=True, preprocessing=process_labels)
 
@@ -57,12 +76,12 @@ class IMDB(TabularDataset):
         return len(ex.text)
 
     @classmethod
-    def splits(cls, path, train=os.path.join('IMDB', 'data', 'imdb_train.tsv'),
-               validation=os.path.join('IMDB', 'data', 'imdb_validation.tsv'),
-               test=os.path.join('IMDB', 'data', 'imdb_test.tsv'), **kwargs):
-        return super(IMDB, cls).splits(
-            path, train=train, validation=validation, test=test,
-            format='tsv', fields=[('label', cls.LABEL_FIELD), ('text', cls.TEXT_FIELD)]
+    def splits(cls, path, train=os.path.join('vulas_diffs', 'train.tsv'),
+               validation=os.path.join('vulas_diffs', 'dev.tsv'),
+               test=os.path.join('vulas_diffs', 'test.tsv'), **kwargs):
+        return super(VulasDiff, cls).splits(
+            path, train=train, validation=validation, test=test, format='tsv',
+            fields=[('repo', cls.REPO_FIELD), ('sha', cls.SHA_FIELD), ('text', cls.TEXT_FIELD), ('label', cls.LABEL_FIELD)]
         )
 
     @classmethod
@@ -87,8 +106,9 @@ class IMDB(TabularDataset):
                                      sort_within_batch=True, device=device)
 
 
-class IMDBCharQuantized(IMDB):
-    ALPHABET = dict(map(lambda t: (t[1], t[0]), enumerate(list("""abcdefghijklmnopqrstuvwxyz0123456789,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}"""))))
+class VulasDiffCharQuantized(VulasDiff):
+    ALPHABET = dict(map(lambda t: (t[1], t[0]),
+                        enumerate(list("""abcdefghijklmnopqrstuvwxyz0123456789,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}"""))))
     TEXT_FIELD = Field(sequential=False, use_vocab=False, batch_first=True, preprocessing=char_quantize)
 
     @classmethod
@@ -101,9 +121,10 @@ class IMDBCharQuantized(IMDB):
         :return:
         """
         train, val, test = cls.splits(path)
-        return BucketIterator.splits((train, val, test), batch_size=batch_size, repeat=False, shuffle=shuffle, device=device)
+        return BucketIterator.splits((train, val, test), batch_size=batch_size, repeat=False, shuffle=shuffle,
+                                     device=device)
 
 
-class IMDBHierarchical(IMDB):
+class VulasDiffHierarchical(VulasDiff):
     NESTING_FIELD = Field(batch_first=True, tokenize=clean_string)
     TEXT_FIELD = NestedField(NESTING_FIELD, tokenize=split_sents)
