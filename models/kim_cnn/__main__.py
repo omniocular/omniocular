@@ -4,11 +4,10 @@ from copy import deepcopy
 
 import numpy as np
 import torch
-import torch.onnx
 
 from common.evaluation import EvaluatorFactory
 from common.train import TrainerFactory
-from datasets.imdb import IMDB
+from datasets.vulas_diff import VulasDiff
 from models.kim_cnn.args import get_args
 from models.kim_cnn.model import KimCNN
 
@@ -73,7 +72,7 @@ if __name__ == '__main__':
     logger = get_logger()
 
     dataset_map = {
-        'IMDB': IMDB
+        'VulasDiff': VulasDiff
     }
 
     if args.dataset not in dataset_map:
@@ -152,10 +151,3 @@ if __name__ == '__main__':
     else:
         evaluate_dataset('dev', dataset_map[args.dataset], model, None, dev_iter, args.batch_size, args.gpu, args.single_label)
         evaluate_dataset('test', dataset_map[args.dataset], model, None, test_iter, args.batch_size, args.gpu, args.single_label)
-
-    if args.onnx:
-        device = torch.device('cuda') if torch.cuda.is_available() and args.cuda else torch.device('cpu')
-        dummy_input = torch.zeros(args.onnx_batch_size, args.onnx_sent_len, dtype=torch.long, device=device)
-        onnx_filename = 'kimcnn_{}.onnx'.format(args.mode)
-        torch.onnx.export(model, dummy_input, onnx_filename)
-        print('Exported model in ONNX format as {}'.format(onnx_filename))
