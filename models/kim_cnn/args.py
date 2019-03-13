@@ -25,9 +25,9 @@ def get_args():
     parser.add_argument('--dropout', type=float, default=0.5)
     parser.add_argument('--epoch-decay', type=int, default=15)
     parser.add_argument('--data-dir', help='word vectors directory',
-                        default=os.path.join(os.pardir, 'omnicular-data', 'datasets'))
+                        default=os.path.join(os.pardir, 'omniocular-data', 'datasets'))
     parser.add_argument('--word-vectors-dir', help='word vectors directory',
-                        default=os.path.join(os.pardir, 'omnicular-data', 'embeddings', 'word2vec'))
+                        default=os.path.join(os.pardir, 'omniocular-data', 'embeddings', 'word2vec'))
     parser.add_argument('--word-vectors-file', help='word vectors filename', default='GoogleNews-vectors-negative300.txt')
     parser.add_argument('--trained-model', type=str, default="")
     parser.add_argument('--weight-decay', type=float, default=0)
