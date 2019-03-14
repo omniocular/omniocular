@@ -76,9 +76,9 @@ class VulasDiff(TabularDataset):
         return len(ex.text)
 
     @classmethod
-    def splits(cls, path, train=os.path.join('vulas_diffs', 'train.tsv'),
-               validation=os.path.join('vulas_diffs', 'dev.tsv'),
-               test=os.path.join('vulas_diffs', 'test.tsv'), **kwargs):
+    def splits(cls, path, train=os.path.join('vulas_diff', 'train.tsv'),
+               validation=os.path.join('vulas_diff', 'dev.tsv'),
+               test=os.path.join('vulas_diff', 'test.tsv'), **kwargs):
         return super(VulasDiff, cls).splits(
             path, train=train, validation=validation, test=test, format='tsv',
             fields=[('repo', cls.REPO_FIELD), ('sha', cls.SHA_FIELD), ('text', cls.TEXT_FIELD), ('label', cls.LABEL_FIELD)]
