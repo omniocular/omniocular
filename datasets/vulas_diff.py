@@ -1,38 +1,18 @@
 import csv
 import os
-import random
-import re
 import sys
 
 import numpy as np
 import torch
-from nltk import tokenize
 from torchtext.data import NestedField, Field, TabularDataset
 from torchtext.data.iterator import BucketIterator
 from torchtext.vocab import Vectors
 
 # Increase the upper limit on parsed fields
+from util import tokenize
+from util.preprocess import split_string, remove_field, process_labels
+
 csv.field_size_limit(sys.maxsize)
-
-
-def clean_string(string, sentence_droprate=0, max_length=5000):
-    """
-    Performs tokenization and string cleaning
-    """
-    if sentence_droprate > 0:
-        lines = [x for x in tokenize.sent_tokenize(string) if len(x) > 1]
-        lines_drop = [x for x in lines if random.randint(0, 100) > 100 * sentence_droprate]
-        string = ' '.join(lines_drop if len(lines_drop) > 0 else lines)
-
-    string = re.sub(r'[^A-Za-z0-9]', ' ', string)
-    string = re.sub(r'\s{2,}', ' ', string)
-    tokenized_string = string.lower().strip().split()
-    return tokenized_string[:min(max_length, len(tokenized_string))]
-
-
-def split_sents(string, max_length=40):
-    tokenized_string = [x for x in tokenize.sent_tokenize(string) if len(x) > 1]
-    return tokenized_string[:min(max_length, len(tokenized_string))]
 
 
 def char_quantize(string, max_length=1000):
@@ -50,25 +30,14 @@ def char_quantize(string, max_length=1000):
             dtype=np.float32)))
 
 
-def remove_field(string):
-    return 0
-
-
-def process_labels(string):
-    """
-    Returns the label string as a list of integers
-    :param string:
-    :return:
-    """
-    return [float(x) for x in string]
-
-
 class VulasDiff(TabularDataset):
     NAME = 'VulasDiff'
     NUM_CLASSES = 2
+    IS_MULTILABEL = False
+
     REPO_FIELD = Field(sequential=False, use_vocab=False, batch_first=True, preprocessing=remove_field)
     SHA_FIELD = Field(sequential=False, use_vocab=False, batch_first=True, preprocessing=remove_field)
-    TEXT_FIELD = Field(batch_first=True, tokenize=clean_string, include_lengths=True)
+    TEXT_FIELD = Field(batch_first=True, tokenize=tokenize.string, include_lengths=True)
     LABEL_FIELD = Field(sequential=False, use_vocab=False, batch_first=True, preprocessing=process_labels)
 
     @staticmethod
@@ -76,7 +45,7 @@ class VulasDiff(TabularDataset):
         return len(ex.text)
 
     @classmethod
-    def splits(cls, path, train=os.path.join('vulas_diffs', 'train.tsv'),
+    def splits(cls, path, train=os.path.join('vulas_diffs', 'train_aug.tsv'),
                validation=os.path.join('vulas_diffs', 'dev.tsv'),
                test=os.path.join('vulas_diffs', 'test.tsv'), **kwargs):
         return super(VulasDiff, cls).splits(
@@ -126,5 +95,5 @@ class VulasDiffCharQuantized(VulasDiff):
 
 
 class VulasDiffHierarchical(VulasDiff):
-    NESTING_FIELD = Field(batch_first=True, tokenize=clean_string)
-    TEXT_FIELD = NestedField(NESTING_FIELD, tokenize=split_sents)
+    NESTING_FIELD = Field(batch_first=True, tokenize=tokenize.string)
+    TEXT_FIELD = NestedField(NESTING_FIELD, tokenize=split_string)
