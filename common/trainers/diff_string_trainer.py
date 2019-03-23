@@ -22,7 +22,8 @@ class DiffStringTrainer(Trainer):
         self.start = None
         self.log_template = ' '.join(
             '{:>6.0f},{:>5.0f},{:>9.0f},{:>5.0f}/{:<5.0f} {:>7.0f}%,{:>8.6f},{:12.4f}'.split(','))
-        self.dev_log_template = ' '.join('{:>6.0f},{:>5.0f},{:>9.0f},{:>5.0f}/{:<5.0f} {:>7.4f},{:>8.4f},{:8.4f},{:12.4f},{:12.4f}'.split(','))
+        self.dev_log_template = ' '.join(
+            '{:>6.0f},{:>5.0f},{:>9.0f},{:>5.0f}/{:<5.0f} {:>7.4f},{:>8.4f},{:8.4f},{:12.4f},{:12.4f}'.split(','))
         self.writer = SummaryWriter(log_dir="tensorboard_logs/" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.snapshot_path = os.path.join(self.model_outfile, self.train_loader.dataset.NAME, 'best_model.pt')
 
@@ -33,6 +34,7 @@ class DiffStringTrainer(Trainer):
             self.iterations += 1
             self.model.train()
             self.optimizer.zero_grad()
+
             if hasattr(self.model, 'TAR') and self.model.TAR:
                 if 'ignore_lengths' in self.config and self.config['ignore_lengths']:
                     scores, rnn_outs = self.model(batch.text)
@@ -44,18 +46,17 @@ class DiffStringTrainer(Trainer):
                 else:
                     scores = self.model(batch.text[0], lengths=batch.text[1])
 
-            if 'single_label' in self.config and self.config['single_label']:
-                for tensor1, tensor2 in zip(torch.argmax(scores, dim=1), torch.argmax(batch.label.data, dim=1)):
-                    if np.array_equal(tensor1, tensor2):
-                        n_correct += 1
-                loss = F.cross_entropy(scores, torch.argmax(batch.label.data, dim=1))
-            else:
+            if 'is_multilabel' in self.config and self.config['is_multilabel']:
                 predictions = F.sigmoid(scores).round().long()
-                # Computing binary accuracy
                 for tensor1, tensor2 in zip(predictions, batch.label):
                     if np.array_equal(tensor1, tensor2):
                         n_correct += 1
                 loss = F.binary_cross_entropy_with_logits(scores, batch.label.float())
+            else:
+                for tensor1, tensor2 in zip(torch.argmax(scores, dim=1), torch.argmax(batch.label.data, dim=1)):
+                    if np.array_equal(tensor1, tensor2):
+                        n_correct += 1
+                loss = F.cross_entropy(scores, torch.argmax(batch.label.data, dim=1))
 
             if hasattr(self.model, 'TAR') and self.model.TAR:
                 loss = loss + self.model.TAR*(rnn_outs[1:] - rnn_outs[:-1]).pow(2).mean()
@@ -67,7 +68,6 @@ class DiffStringTrainer(Trainer):
             loss.backward()
             self.optimizer.step()
 
-            # Temp Ave
             if hasattr(self.model, 'beta_ema') and self.model.beta_ema > 0:
                 self.model.update_ema()
 
@@ -84,7 +84,6 @@ class DiffStringTrainer(Trainer):
         self.start = time.time()
         header = '  Time Epoch Iteration Progress    (%Epoch)   Loss     Accuracy'
         dev_header = '  Time Epoch Iteration Progress     Dev/Acc. Dev/Pr.  Dev/Recall   Dev/F1       Dev/Loss'
-        # model_outfile is actually a directory, using model_outfile to conform to Trainer naming convention
         os.makedirs(self.model_outfile, exist_ok=True)
         os.makedirs(os.path.join(self.model_outfile, self.train_loader.dataset.NAME), exist_ok=True)
 
