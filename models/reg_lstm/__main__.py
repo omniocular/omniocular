@@ -7,14 +7,10 @@ import torch
 
 from common.evaluation import EvaluatorFactory
 from common.train import TrainerFactory
-from datasets.sst import SST1
-from datasets.sst import SST2
-from datasets.reuters import Reuters
-from datasets.aapd import AAPD
-from datasets.imdb import IMDB
-from datasets.yelp2014 import Yelp2014
-from models.lstm_regularization import get_args
-from models.lstm_regularization import LSTMBaseline
+from datasets.vulas_diff import VulasDiff
+from models.reg_lstm.args import get_args
+from models.reg_lstm.model import RegLSTM
+
 
 class UnknownWordVecCache(object):
     """
@@ -27,8 +23,6 @@ class UnknownWordVecCache(object):
         size_tup = tuple(tensor.size())
         if size_tup not in cls.cache:
             cls.cache[size_tup] = torch.Tensor(tensor.size())
-            # choose 0.25 so unknown vectors have approximately same variance as pre-trained ones
-            # same as original implementation: https://github.com/yoonkim/CNN_sentence/blob/0a626a048757d5272a7e8ccede256a434a6529be/process_data.py#L95
             cls.cache[size_tup].uniform_(-0.25, 0.25)
         return cls.cache[size_tup]
 
@@ -75,12 +69,7 @@ if __name__ == '__main__':
     logger = get_logger()
 
     dataset_map = {
-        'SST-1': SST1,
-        'SST-2': SST2,
-        'Reuters': Reuters,
-        'AAPD': AAPD,
-        'IMDB': IMDB,
-        'Yelp2014': Yelp2014
+        'VulasDiff': VulasDiff
     }
 
     if args.dataset not in dataset_map:
@@ -106,7 +95,7 @@ if __name__ == '__main__':
         else:
             model = torch.load(args.resume_snapshot, map_location=lambda storage, location: storage)
     else:
-        model = LSTMBaseline(config)
+        model = RegLSTM(config)
         if args.cuda:
             model.cuda()
             print('Shift model to GPU')
