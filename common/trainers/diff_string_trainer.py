@@ -35,7 +35,7 @@ class DiffStringTrainer(Trainer):
             self.model.train()
             self.optimizer.zero_grad()
 
-            if hasattr(self.model, 'TAR') and self.model.TAR:
+            if hasattr(self.model, 'tar') and self.model.tar:
                 if 'ignore_lengths' in self.config and self.config['ignore_lengths']:
                     scores, rnn_outs = self.model(batch.text)
                 else:
@@ -58,10 +58,10 @@ class DiffStringTrainer(Trainer):
                         n_correct += 1
                 loss = F.cross_entropy(scores, torch.argmax(batch.label.data, dim=1))
 
-            if hasattr(self.model, 'TAR') and self.model.TAR:
-                loss = loss + self.model.TAR*(rnn_outs[1:] - rnn_outs[:-1]).pow(2).mean()
-            if hasattr(self.model, 'AR') and self.model.AR:
-                loss = loss + self.model.AR*(rnn_outs[:]).pow(2).mean()
+            if hasattr(self.model, 'tar') and self.model.tar:
+                loss = loss + self.model.tar * (rnn_outs[1:] - rnn_outs[:-1]).pow(2).mean()
+            if hasattr(self.model, 'ar') and self.model.ar:
+                loss = loss + self.model.ar * (rnn_outs[:]).pow(2).mean()
 
             n_total += batch.batch_size
             train_acc = 100. * n_correct / n_total
