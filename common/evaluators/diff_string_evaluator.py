@@ -24,7 +24,7 @@ class DiffStringEvaluator(Evaluator):
 
         predicted_labels, target_labels = list(), list()
         for batch_idx, batch in enumerate(self.data_loader):
-            if hasattr(self.model, 'TAR') and self.model.TAR:  # TAR condition
+            if hasattr(self.model, 'tar') and self.model.tar:  # TAR condition
                 if self.ignore_lengths:
                     scores, rnn_outs = self.model(batch.text)
                 else:
@@ -45,7 +45,7 @@ class DiffStringEvaluator(Evaluator):
                 target_labels.extend(torch.argmax(batch.label, dim=1).cpu().detach().numpy())
                 total_loss += F.cross_entropy(scores, torch.argmax(batch.label, dim=1), size_average=False).item()
 
-            if hasattr(self.model, 'TAR') and self.model.TAR:  # TAR condition
+            if hasattr(self.model, 'tar') and self.model.tar:  # TAR condition
                 total_loss += (rnn_outs[1:] - rnn_outs[:-1]).pow(2).mean()
 
         predicted_labels = np.array(predicted_labels)
