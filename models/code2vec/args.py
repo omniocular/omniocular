@@ -39,10 +39,10 @@ def get_args():
                         help="test_result_path")
 
     parser.add_argument("--max_epoch", type=int, default=40, help="max_epoch")
-    parser.add_argument('--lr', type=float, default=0.01, help="lr")
+    parser.add_argument('--lr', type=float, default=0.001, help="lr")
     parser.add_argument('--beta_min', type=float, default=0.9, help="beta_min")
     parser.add_argument('--beta_max', type=float, default=0.999, help="beta_max")
-    parser.add_argument('--weight_decay', type=float, default=0.0, help="weight_decay")
+    parser.add_argument('--weight_decay', type=float, default=1.0, help="weight_decay")
 
     parser.add_argument('--dropout_prob', type=float, default=0.5, help="dropout_prob")
 

@@ -213,7 +213,7 @@ def _train(model, optimizer, criterion, option, reader, builder, trial):
             if bad_count > 10:
                 print('early stop loss:{0}, bad:{1}'.format(
                     train_loss, bad_count))
-                print_sample(reader, model, test_data_loader, option)
+                # print_sample(reader, model, test_data_loader, option)
                 break
 
     finally:
