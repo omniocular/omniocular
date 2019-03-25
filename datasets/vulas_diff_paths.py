@@ -10,7 +10,6 @@ from torch.utils.data import Dataset
 
 logger = logging.getLogger()
 
-
 """ from dataset.py """
 
 
@@ -65,8 +64,10 @@ class Vocab(object):
         self.itos = {}
         self.itosubtokens = {}
         self.freq = {}
+        self.size = 0
 
     def append(self, name, index=None, subtokens=None):
+        self.size += 1
         if name not in self.stoi:
             if index is None:
                 index = len(self.stoi)
@@ -84,6 +85,9 @@ class Vocab(object):
         for i in range(self.len()):
             freq_list[i] = freq[i]
         return freq_list
+
+    def duplicate_len(self):
+        return self.size
 
     def len(self):
         return len(self.stoi)
@@ -130,69 +134,67 @@ class DatasetReader(object):
 
     def __init__(self, corpus_path, path_index_path, terminal_index_path):
         self.path_vocab = VocabReader(path_index_path).read()
-        logger.info('path vocab size: {0}'.format(self.path_vocab.len()))
+        logger.info('path vocab size: {0}'.format(self.path_vocab.duplicate_len()))
 
         self.terminal_vocab = VocabReader(terminal_index_path).read()
         logger.info('terminal vocab size: {0}'.format(
-            self.terminal_vocab.len()))
+            self.terminal_vocab.duplicate_len()))
 
         self.label_vocab = Vocab()
-        self.items = []
+        self.items = {"train": [], "dev": [], "test": []}
         self.load(corpus_path)
 
         logger.info('label vocab size: {0}'.format(self.label_vocab.len()))
-        logger.info('corpus: {0}'.format(len(self.items)))
+        logger.info('train corpus: {0}'.format(len(self.items["train"])))
 
     def load(self, corpus_path):
-        with open(corpus_path, mode="r", encoding="utf-8") as f:
-            code_data = None
-            path_contexts_append = None
-            parse_mode = 0
-            label_vocab = self.label_vocab
-            label_vocab_append = label_vocab.append
-            for line in f.readlines():
-                line = line.strip(' \r\n\t')
+        for split in ["train", "dev", "test"]:
+            with open(corpus_path+split+".txt", mode="r", encoding="utf-8") as f:
+                code_data = None
+                path_contexts_append = None
+                parse_mode = 0
+                for line in f.readlines():
+                    line = line.strip(' \r\n\t')
 
-                if line == '':
-                    if code_data is not None:
-                        self.items.append(code_data)
-                        code_data = None
-                    continue
+                    if line == '':
+                        if code_data is not None:
+                            self.items[split].append(code_data)
+                            code_data = None
+                        continue
 
-                if code_data is None:
-                    code_data = CodeData()
-                    path_contexts_append = code_data.path_contexts.append
+                    if code_data is None:
+                        code_data = CodeData()
+                        path_contexts_append = code_data.path_contexts.append
 
-                if line.startswith('#'):
-                    code_data.id = int(line[1:])
-                elif line.startswith('label:'):
-                    label = line[6:]
-                    code_data.label = label
-                    normalized_label = Vocab.normalize_method_name(label)
-                    subtokens = Vocab.get_method_subtokens(normalized_label)
-                    normalized_lower_label = normalized_label.lower()
-                    code_data.normalized_label = normalized_lower_label
-                    label_vocab_append(
-                        normalized_lower_label, subtokens=subtokens)
-                elif line.startswith('class:'):
-                    code_data.source = line[6:]
-                elif line.startswith('paths:'):
-                    parse_mode = 1
-                elif line.startswith('vars:'):
-                    parse_mode = 2
-                elif line.startswith('doc:'):
-                    doc = line[4:]
-                elif parse_mode == 1:  # paths
-                    path_context = line.split('\t')
-                    path_contexts_append((int(path_context[0]), int(
-                        path_context[1]), int(path_context[2])))
-                elif parse_mode == 2:  # vars
-                    alias = line.split('\t')
-                    code_data.aliases[alias[1]] = alias[0]
+                    if line.startswith('#'):
+                        code_data.id = int(line[1:])
+                    elif line.startswith('label:'):
+                        label = line[6:]
+                        code_data.label = label
+                        normalized_label = Vocab.normalize_method_name(label)
+                        subtokens = Vocab.get_method_subtokens(normalized_label)
+                        normalized_lower_label = normalized_label.lower()
+                        code_data.normalized_label = normalized_lower_label
+                        self.label_vocab.append(
+                            normalized_lower_label, subtokens=subtokens)
+                    elif line.startswith('class:'):
+                        code_data.source = line[6:]
+                    elif line.startswith('paths:'):
+                        parse_mode = 1
+                    elif line.startswith('vars:'):
+                        parse_mode = 2
+                    elif line.startswith('doc:'):
+                        doc = line[4:]
+                    elif parse_mode == 1:  # paths
+                        path_context = line.split('\t')
+                        path_contexts_append((int(path_context[0]), int(
+                            path_context[1]), int(path_context[2])))
+                    elif parse_mode == 2:  # vars
+                        alias = line.split('\t')
+                        code_data.aliases[alias[1]] = alias[0]
 
-            if code_data is not None:
-                self.items.append(code_data)
-
+                if code_data is not None:
+                    self.items[split].append(code_data)
 
 """ from dataset_bulder.py """
 
@@ -204,29 +206,44 @@ class DatasetBuilder(object):
         self.reader = reader
         self.option = option
 
-        train_count = int(len(reader.items) * (1-split_ratio))
         # random.shuffle(reader.items)
-        train_items = reader.items[0: train_count]
-        test_items = reader.items[train_count:]
+        train_items = reader.items["train"]
+        dev_items = reader.items["dev"]
+        test_items = reader.items["test"]
+        train_count = len(train_items)
+        dev_count = len(dev_items)
+        test_count = len(test_items)
         logger.info('train dataset size: {0}'.format(len(train_items)))
         logger.info('test dataset size: {0}'.format(len(test_items)))
 
         self.train_items = train_items
+        self.dev_items = dev_items
         self.test_items = test_items
 
-    def refresh_train_dataset(self):
+    def refresh_dataset(self):
         """refresh training dataset (shuffling path contexts and picking up items (#items <= max_path_length)"""
         inputs_id, inputs_starts, inputs_paths, inputs_ends, inputs_label = self.build_data(
             self.reader, self.train_items, self.option.max_path_length)
         self.train_dataset = CodeDataset(
             inputs_id, inputs_starts, inputs_paths, inputs_ends, inputs_label)
 
-    def refresh_test_dataset(self):
-        """refresh test dataset (shuffling path contexts and picking up items (#items <= max_path_length)"""
+        inputs_id, inputs_starts, inputs_paths, inputs_ends, inputs_label = self.build_data(
+            self.reader, self.dev_items, self.option.max_path_length)
+        self.dev_dataset = CodeDataset(
+            inputs_id, inputs_starts, inputs_paths, inputs_ends, inputs_label)
+
         inputs_id, inputs_starts, inputs_paths, inputs_ends, inputs_label = self.build_data(
             self.reader, self.test_items, self.option.max_path_length)
         self.test_dataset = CodeDataset(
             inputs_id, inputs_starts, inputs_paths, inputs_ends, inputs_label)
+
+
+    # def refresh_test_dataset(self):
+    #     """refresh test dataset (shuffling path contexts and picking up items (#items <= max_path_length)"""
+    #     inputs_id, inputs_starts, inputs_paths, inputs_ends, inputs_label = self.build_data(
+    #         self.reader, self.test_items, self.option.max_path_length)
+    #     self.test_dataset = CodeDataset(
+    #         inputs_id, inputs_starts, inputs_paths, inputs_ends, inputs_label)
 
     def build_data(self, reader, items, max_path_length):
         inputs_id = []

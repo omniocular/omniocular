@@ -54,8 +54,8 @@ class Option(object):
     def __init__(self, reader):
         self.max_path_length = args.max_path_length
 
-        self.terminal_count = reader.terminal_vocab.len()
-        self.path_count = reader.path_vocab.len()
+        self.terminal_count = reader.terminal_vocab.duplicate_len()
+        self.path_count = reader.path_vocab.duplicate_len()
         self.label_count = reader.label_vocab.len()
 
         self.terminal_embed_size = args.terminal_embed_size
@@ -112,10 +112,10 @@ def _train(model, optimizer, criterion, option, reader, builder, trial):
         for epoch in range(args.max_epoch):
             train_loss = 0.0
 
-            builder.refresh_train_dataset()
+            builder.refresh_dataset()
             train_data_loader = DataLoader(
                 builder.train_dataset, batch_size=option.batch_size,
-                shuffle=False, num_workers=args.num_workers)
+                shuffle=True, num_workers=args.num_workers)
 
             model.train()
             for i_batch, sample_batched in enumerate(train_data_loader):
@@ -132,7 +132,7 @@ def _train(model, optimizer, criterion, option, reader, builder, trial):
 
                 train_loss += loss.item()
 
-            builder.refresh_test_dataset()
+            # builder.refresh_test_dataset()
             test_data_loader = DataLoader(
                 builder.test_dataset, batch_size=option.batch_size,
                 shuffle=True, num_workers=args.num_workers)
@@ -175,8 +175,8 @@ def _train(model, optimizer, criterion, option, reader, builder, trial):
                 if trial.should_prune(epoch):
                     raise optuna.structs.TrialPruned()
 
-            if epoch > 1 and epoch % args.print_sample_cycle == 0 and trial is None:
-                print_sample(reader, model, test_data_loader, option)
+            # if epoch > 1 and epoch % args.print_sample_cycle == 0 and trial is None:
+            #     print_sample(reader, model, test_data_loader, option)
 
             if best_f1 is None or best_f1 < f1:
                 if args.env == "floyd":
