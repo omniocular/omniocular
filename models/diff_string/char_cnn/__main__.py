@@ -5,8 +5,8 @@ import random
 import numpy as np
 import torch
 
-from models.diffs.char_cnn import get_args
-from models.diffs.char_cnn.model import CharCNN
+from models.diff_string.char_cnn import get_args
+from models.diff_string.char_cnn.model import CharCNN
 from common.evaluation import EvaluatorFactory
 from common.train import TrainerFactory
 from datasets.aapd import AAPDCharQuantized as AAPD

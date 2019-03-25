@@ -8,8 +8,8 @@ import torch
 from common.evaluation import EvaluatorFactory
 from common.train import TrainerFactory
 from datasets.vulas_diff import VulasDiff
-from models.reg_lstm.args import get_args
-from models.reg_lstm.model import RegLSTM
+from models.diff_string.reg_lstm.args import get_args
+from models.diff_string.reg_lstm.model import RegLSTM
 
 
 class UnknownWordVecCache(object):

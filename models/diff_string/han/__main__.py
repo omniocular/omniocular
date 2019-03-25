@@ -14,8 +14,8 @@ from datasets.sst import SST1
 from datasets.sst import SST2
 from datasets.reuters import ReutersHierarchical as Reuters
 from datasets.yelp2014 import  Yelp2014Hierarchical as Yelp2014
-from models.han.args import get_args
-from models.han.model import HAN
+from models.diff_string.han.args import get_args
+from models.diff_string.han.model import HAN
 
 
 class UnknownWordVecCache(object):
