@@ -5,12 +5,12 @@ import random
 import numpy as np
 import torch
 
-from models.char_cnn import get_args
-from models.char_cnn.model import CharCNN
+from models.diffs.char_cnn import get_args
+from models.diffs.char_cnn.model import CharCNN
 from common.evaluation import EvaluatorFactory
 from common.train import TrainerFactory
 from datasets.aapd import AAPDCharQuantized as AAPD
-from datasets.imdb import IMDBCharQuantized as IMDB
+from datasets.vulas_diff import VulasDiffCharQuantized as IMDB
 from datasets.reuters import ReutersCharQuantized as Reuters
 from datasets.yelp2014 import Yelp2014CharQuantized as Yelp2014
 
