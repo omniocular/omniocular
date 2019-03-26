@@ -7,7 +7,7 @@ import torch
 
 from common.evaluation import EvaluatorFactory
 from common.train import TrainerFactory
-from datasets.vulas_diff import VulasDiff
+from datasets.vulas_diff_string import VulasDiff
 from models.diff_string.kim_cnn.args import get_args
 from models.diff_string.kim_cnn.model import KimCNN
 
