@@ -11,7 +11,6 @@ def get_args():
     parser.add_argument('--output-channel', type=int, default=100)
     parser.add_argument('--words-dim', type=int, default=300)
     parser.add_argument('--embed-dim', type=int, default=300)
-    parser.add_argument('--dropout', type=float, default=0.5)
     parser.add_argument('--epoch-decay', type=int, default=15)
     parser.add_argument('--weight-decay', type=float, default=0)
 
