@@ -1,4 +1,5 @@
-from .trainers.diff_string_trainer import DiffStringTrainer
+from common.trainers.diff_string_trainer import DiffStringTrainer
+from common.trainers.paired_token_trainer import PairedTokenTrainer
 
 
 class TrainerFactory(object):
@@ -6,7 +7,8 @@ class TrainerFactory(object):
     Get the corresponding Trainer class for a particular dataset.
     """
     trainer_map = {
-        'VulasDiff': DiffStringTrainer
+        'VulasDiff': DiffStringTrainer,
+        'VulasPairedToken': PairedTokenTrainer
     }
 
     @staticmethod

@@ -1,4 +1,5 @@
 from common.evaluators.diff_string_evaluator import DiffStringEvaluator
+from common.evaluators.paired_token_evaluator import PairedTokenEvaluator
 
 
 class EvaluatorFactory(object):
@@ -6,7 +7,9 @@ class EvaluatorFactory(object):
     Get the corresponding Evaluator class for a particular dataset.
     """
     evaluator_map = {
-        'VulasDiff': DiffStringEvaluator
+        'VulasDiff': DiffStringEvaluator,
+        'VulasPairedToken': PairedTokenEvaluator
+
     }
 
     @staticmethod
