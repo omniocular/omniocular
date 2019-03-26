@@ -67,18 +67,15 @@ class RegCNN(nn.Module):
         if self.dynamic_pool:
             self.dynamic_pool = nn.AdaptiveMaxPool1d(self.dynamic_pool_length)  # Dynamic pooling
             if self.has_bottleneck:
-                self.fc1 = nn.Linear(self.filter_widths * self.output_channel * (self.dynamic_pool_length + 1), self.bottleneck_units)
+                self.fc1 = nn.Linear(self.filter_widths * self.output_channel * self.dynamic_pool_length, self.bottleneck_units)
                 self.fc2 = nn.Linear(self.bottleneck_units, target_class)
             else:
-                self.fc1 = nn.Linear(self.filter_widths * self.output_channel * (self.dynamic_pool_length + 1), target_class)
+                self.fc1 = nn.Linear(self.filter_widths * self.output_channel * self.dynamic_pool_length, target_class)
 
         else:
             if self.attention:
-                self.sentence_linear = nn.Linear(self.filter_widths * self.output_channel, self.filter_widths * self.output_channel,
-                                                 bias=True)
-                self.sentence_context_wghts = nn.Parameter(torch.rand(self.filter_widths * self.output_channel, 1))
-                self.fc = nn.Linear(self.filter_widths * self.output_channel, target_class)
-                self.soft_sent = nn.Softmax()
+                self.context_softmax = nn.Softmax()
+                self.context_weights = nn.Parameter(torch.rand(self.filter_widths * self.output_channel, 1))
 
             if self.has_bottleneck:
                 self.fc1 = nn.Linear(self.filter_widths * self.output_channel, self.bottleneck_units)
@@ -124,25 +121,20 @@ class RegCNN(nn.Module):
             x = [self.dropblock(conv_output) for conv_output in x]
 
         if self.attention:
-            x = torch.cat(x, 1)  # (batch, channel_output * Ks)
-            xt = x.permute(2, 0, 1)  # (~=sent_len, batch, channel_output)
-            x = torch.tanh(self.sentence_linear(xt))
-            x = torch.matmul(x, self.sentence_context_wghts).squeeze(2)
-            x = self.soft_sent(x.transpose(1, 0))
+            x = torch.cat(x, 1)  # (batch, channel_output * filter_widths, sent_len)
+            xt = x.permute(2, 0, 1)  # (sent_len, batch, channel_output * filter_widths)
+            x = torch.matmul(xt, self.context_weights).squeeze(2)
+            x = self.context_softmax(x.transpose(1, 0))
             x = torch.mul(xt.permute(2, 0, 1), x.transpose(1, 0))
             x = torch.sum(x, 1).transpose(1, 0)
 
         elif self.dynamic_pool:
-            x1 = [self.dynamic_pool(i).squeeze(2) for i in x]  # (batch, channel_output) * Ks
-            x1 = torch.cat(x1, 1)  # (batch, channel_output * Ks)
-            x1 = x1.view(-1, self.filter_widths * self.output_channel * self.dynamic_pool_length)
-            x2 = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in x]  # (batch, channel_output, ~=sent_len) * Ks
-            x2 = torch.cat(x2, 1)
-            x = torch.cat((x1, x2), 1)
-
+            x = [self.dynamic_pool(i).squeeze(2) for i in x]  # (batch, channel_output * pool_length) * filter_widths
+            x = torch.cat(x, 1)  # (batch, channel_output * pool_length * filter_widths)
+            x = x.view(-1, self.filter_widths * self.output_channel * self.dynamic_pool_length)
         else:
-            x = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in x]  # (batch, channel_output, ~=sent_len) * Ks
-            x = torch.cat(x, 1)  # (batch, channel_output * Ks)
+            x = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in x]  # (batch, channel_output, sent_len) * filter_widths
+            x = torch.cat(x, 1)  # (batch, channel_output * filter_widths)
 
         x = self.dropout(x)
 
