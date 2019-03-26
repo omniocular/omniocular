@@ -1,9 +1,14 @@
-from nltk import tokenize
+import json
 
 
-def split_string(string, max_length=40):
-    tokenized_string = [x for x in tokenize.sent_tokenize(string) if len(x) > 1]
-    return tokenized_string[:min(max_length, len(tokenized_string))]
+def split_string(string, max_length=1000):
+    split_val = string.split()
+    return split_val[:min(max_length, len(split_val))]
+
+
+def split_json(string, max_length=40):
+    split_val = json.loads(string)
+    return split_val[:min(max_length, len(split_val))]
 
 
 def remove_field(*args, **kwargs):
