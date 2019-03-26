@@ -1,6 +1,6 @@
-from copy import deepcopy
 import logging
 import random
+from copy import deepcopy
 
 import numpy as np
 import torch
@@ -8,8 +8,8 @@ import torch
 from common.evaluation import EvaluatorFactory
 from common.train import TrainerFactory
 from datasets.vulas_diff import VulasDiff
-from models.reg_lstm.args import get_args
-from models.reg_lstm.model import RegLSTM
+from models.diff_string.kim_cnn.args import get_args
+from models.diff_string.kim_cnn.model import KimCNN
 
 
 class UnknownWordVecCache(object):
@@ -54,14 +54,10 @@ def evaluate_dataset(split_name, dataset_cls, model, embedding, loader, batch_si
 if __name__ == '__main__':
     # Set default configuration in args.py
     args = get_args()
-    logger = get_logger()
 
     # Set random seed for reproducibility
     torch.manual_seed(args.seed)
     torch.backends.cudnn.deterministic = True
-    np.random.seed(args.seed)
-    random.seed(args.seed)
-
     if not args.cuda:
         args.gpu = -1
     if torch.cuda.is_available() and args.cuda:
@@ -70,6 +66,9 @@ if __name__ == '__main__':
         torch.cuda.manual_seed(args.seed)
     if torch.cuda.is_available() and not args.cuda:
         print('Warning: Using CPU for training')
+    np.random.seed(args.seed)
+    random.seed(args.seed)
+    logger = get_logger()
 
     dataset_map = {
         'VulasDiff': VulasDiff
@@ -77,15 +76,12 @@ if __name__ == '__main__':
 
     if args.dataset not in dataset_map:
         raise ValueError('Unrecognized dataset')
-
     else:
         dataset_class = dataset_map[args.dataset]
-        train_iter, dev_iter, test_iter = dataset_class.iters(args.data_dir,
-                                                              args.word_vectors_file,
-                                                              args.word_vectors_dir,
-                                                              batch_size=args.batch_size,
-                                                              device=args.gpu,
-                                                              unk_init=UnknownWordVecCache.unk)
+        train_iter, dev_iter, test_iter = dataset_map[args.dataset].iters(args.data_dir, args.word_vectors_file,
+                                                                          args.word_vectors_dir,
+                                                                          batch_size=args.batch_size, device=args.gpu,
+                                                                          unk_init=UnknownWordVecCache.unk)
 
     config = deepcopy(args)
     config.dataset = train_iter.dataset
@@ -104,17 +100,17 @@ if __name__ == '__main__':
         else:
             model = torch.load(args.resume_snapshot, map_location=lambda storage, location: storage)
     else:
-        model = RegLSTM(config)
+        model = KimCNN(config)
         if args.cuda:
             model.cuda()
 
     parameter = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = torch.optim.Adam(parameter, lr=args.lr, weight_decay=args.weight_decay)
 
-    train_evaluator = EvaluatorFactory.get_evaluator(dataset_class, model, None, train_iter, args.batch_size, args.gpu)
-    test_evaluator = EvaluatorFactory.get_evaluator(dataset_class, model, None, test_iter, args.batch_size, args.gpu)
-    dev_evaluator = EvaluatorFactory.get_evaluator(dataset_class, model, None, dev_iter, args.batch_size, args.gpu)
-    
+    train_evaluator = EvaluatorFactory.get_evaluator(dataset_map[args.dataset], model, None, train_iter, args.batch_size, args.gpu)
+    test_evaluator = EvaluatorFactory.get_evaluator(dataset_map[args.dataset], model, None, test_iter, args.batch_size, args.gpu)
+    dev_evaluator = EvaluatorFactory.get_evaluator(dataset_map[args.dataset], model, None, dev_iter, args.batch_size, args.gpu)
+
     if hasattr(train_evaluator, 'is_multilabel'):
         train_evaluator.is_multilabel = dataset_class.IS_MULTILABEL
     if hasattr(test_evaluator, 'is_multilabel'):
@@ -142,19 +138,13 @@ if __name__ == '__main__':
         else:
             model = torch.load(args.trained_model, map_location=lambda storage, location: storage)
 
-    model = torch.load(trainer.snapshot_path)
-
-    if model.beta_ema > 0:
-        old_params = model.get_params()
-        model.load_ema_params()
-
     # Calculate dev and test metrics
-    evaluate_dataset('dev', dataset_class, model, None, dev_iter, args.batch_size,
-                     is_multilabel=dataset_class.IS_MULTILABEL,
-                     device=args.gpu)
-    evaluate_dataset('test', dataset_class, model, None, test_iter, args.batch_size,
-                     is_multilabel=dataset_class.IS_MULTILABEL,
-                     device=args.gpu)
+    if hasattr(trainer, 'snapshot_path'):
+        model = torch.load(trainer.snapshot_path)
 
-    if model.beta_ema > 0:
-        model.load_params(old_params)
+    evaluate_dataset('dev', dataset_map[args.dataset], model, None, dev_iter, args.batch_size,
+                     is_multilabel=dataset_class.IS_MULTILABEL,
+                     device=args.gpu)
+    evaluate_dataset('test', dataset_map[args.dataset], model, None, test_iter, args.batch_size,
+                     is_multilabel=dataset_class.IS_MULTILABEL,
+                     device=args.gpu)

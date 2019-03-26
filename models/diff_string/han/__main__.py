@@ -8,14 +8,14 @@ import torch.onnx
 
 from common.evaluation import EvaluatorFactory
 from common.train import TrainerFactory
+from datasets.aapd import AAPDHierarchical as AAPD
+from datasets.vulas_diff import VulasDiffHierarchical as IMDB
 from datasets.sst import SST1
 from datasets.sst import SST2
-from datasets.reuters import Reuters
-from datasets.aapd import AAPD
-from datasets.yelp2014 import Yelp2014
-from datasets.imdb import IMDB
-from models.xml_cnn.args import get_args
-from models.xml_cnn.model import XmlCNN
+from datasets.reuters import ReutersHierarchical as Reuters
+from datasets.yelp2014 import  Yelp2014Hierarchical as Yelp2014
+from models.diff_string.han.args import get_args
+from models.diff_string.han.model import HAN
 
 
 class UnknownWordVecCache(object):
@@ -51,6 +51,7 @@ def get_logger():
 def evaluate_dataset(split_name, dataset_cls, model, embedding, loader, batch_size, device, single_label):
     saved_model_evaluator = EvaluatorFactory.get_evaluator(dataset_cls, model, embedding, loader, batch_size, device)
     saved_model_evaluator.single_label = single_label
+    saved_model_evaluator.ignore_lengths = True
     scores, metric_names = saved_model_evaluator.get_scores()
     print('Evaluation metrics for', split_name)
     print(metric_names)
@@ -82,8 +83,9 @@ if __name__ == '__main__':
         'Reuters': Reuters,
         'AAPD': AAPD,
         'IMDB': IMDB,
-        'Yelp2014':Yelp2014
+        'Yelp2014': Yelp2014
     }
+
     if args.dataset not in dataset_map:
         raise ValueError('Unrecognized dataset')
     else:
@@ -107,15 +109,17 @@ if __name__ == '__main__':
         else:
             model = torch.load(args.resume_snapshot, map_location=lambda storage, location: storage)
     else:
-        model = XmlCNN(config)
+        model = HAN(config)
         if args.cuda:
             model.cuda()
             print('Shift model to GPU')
 
     parameter = filter(lambda p: p.requires_grad, model.parameters())
+    print(parameter)
     #optimizer = torch.optim.Adadelta(parameter, lr=args.lr, weight_decay=args.weight_decay)
+    #optimizer = torch.optim.SGD(parameter, lr = args.lr, momentum = 0.9)
     optimizer = torch.optim.Adam(parameter, lr = args.lr)
-
+    
     if args.dataset not in dataset_map:
         raise ValueError('Unrecognized dataset')
     else:
@@ -125,6 +129,9 @@ if __name__ == '__main__':
         train_evaluator.single_label = args.single_label
         test_evaluator.single_label = args.single_label
         dev_evaluator.single_label = args.single_label
+
+    dev_evaluator.ignore_lengths = True
+    test_evaluator.ignore_lengths = True
     trainer_config = {
         'optimizer': optimizer,
         'batch_size': args.batch_size,
@@ -133,6 +140,7 @@ if __name__ == '__main__':
         'patience': args.patience,
         'model_outfile': args.save_path,   # actually a directory, using model_outfile to conform to Trainer naming convention
         'logger': logger,
+        'ignore_lengths': True,
         'single_label': args.single_label
     }
     trainer = TrainerFactory.get_trainer(args.dataset, model, None, train_iter, trainer_config, train_evaluator, test_evaluator, dev_evaluator)
@@ -145,6 +153,8 @@ if __name__ == '__main__':
         else:
             model = torch.load(args.trained_model, map_location=lambda storage, location: storage)
 
+    # Calculate dev and test metrics
+    model = torch.load(trainer.snapshot_path)
     if args.dataset not in dataset_map:
         raise ValueError('Unrecognized dataset')
     else:
@@ -154,6 +164,6 @@ if __name__ == '__main__':
     if args.onnx:
         device = torch.device('cuda') if torch.cuda.is_available() and args.cuda else torch.device('cpu')
         dummy_input = torch.zeros(args.onnx_batch_size, args.onnx_sent_len, dtype=torch.long, device=device)
-        onnx_filename = 'xmlcnn_{}.onnx'.format(args.mode)
+        onnx_filename = 'han_{}.onnx'.format(args.mode)
         torch.onnx.export(model, dummy_input, onnx_filename)
         print('Exported model in ONNX format as {}'.format(onnx_filename))
