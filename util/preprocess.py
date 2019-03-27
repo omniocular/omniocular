@@ -6,7 +6,7 @@ def split_string(string, max_length=1000):
     return split_val[:min(max_length, len(split_val))]
 
 
-def split_json(string, max_length=40):
+def split_json(string, max_length=20):
     split_val = json.loads(string)
     return split_val[:min(max_length, len(split_val))]
 

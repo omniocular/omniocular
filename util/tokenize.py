@@ -21,7 +21,7 @@ def java(string, max_length=5000):
     :return:
     """
     try:
-        tokenized_string = [x.val for x in javalang.tokenizer.tokenize(string)]
+        tokenized_string = [x.value for x in javalang.tokenizer.tokenize(string)]
         return tokenized_string[:min(max_length, len(tokenized_string))]
 
     except Exception as ex:
