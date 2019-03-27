@@ -11,41 +11,42 @@ class FileEncoder(nn.Module):
     def __init__(self, config):
         super().__init__()
         dataset = config.dataset
-        self.sentence_channel = config.sentence_channel
         words_num = config.words_num
         words_dim = config.words_dim
+
+        self.file_channel = config.file_channel
         self.mode = config.mode
         self.batchnorm = config.batchnorm
         self.embed_droprate = config.embed_droprate
         self.dynamic_pool = config.dynamic_pool
         self.dynamic_pool_length = config.dynamic_pool_length
         self.dropblock_prob = config.dropblock
-        self.Ks = 3
+        self.filter_widths = 3
 
         input_channel = 1
         if config.mode == 'rand':
             rand_embed_init = torch.Tensor(words_num, words_dim).uniform_(-0.25, 0.25)
             self.embed = nn.Embedding.from_pretrained(rand_embed_init, freeze=False)
         elif config.mode == 'static':
-            self.static_embed = nn.Embedding.from_pretrained(dataset.TEXT_FIELD.vocab.vectors, freeze=True)
+            self.static_embed = nn.Embedding.from_pretrained(config.vocab, freeze=True)
         elif config.mode == 'non-static':
-            self.non_static_embed = nn.Embedding.from_pretrained(dataset.TEXT_FIELD.vocab.vectors, freeze=False)
+            self.non_static_embed = nn.Embedding.from_pretrained(config.vocab, freeze=False)
         elif config.mode == 'multichannel':
-            self.static_embed = nn.Embedding.from_pretrained(dataset.TEXT_FIELD.vocab.vectors, freeze=True)
-            self.non_static_embed = nn.Embedding.from_pretrained(dataset.TEXT_FIELD.vocab.vectors, freeze=False)
+            self.static_embed = nn.Embedding.from_pretrained(config.vocab, freeze=True)
+            self.non_static_embed = nn.Embedding.from_pretrained(config.vocab, freeze=False)
             input_channel = 2
         else:
             print("Unsupported Mode")
             exit()
 
-        self.conv1 = nn.Conv2d(input_channel, self.sentence_channel, (3, words_dim), padding=(2, 0))
-        self.conv2 = nn.Conv2d(input_channel, self.sentence_channel, (5, words_dim), padding=(4, 0))
-        self.conv3 = nn.Conv2d(input_channel, self.sentence_channel, (7, words_dim), padding=(6, 0))
+        self.conv1 = nn.Conv2d(input_channel, self.file_channel, (3, words_dim), padding=(2, 0))
+        self.conv2 = nn.Conv2d(input_channel, self.file_channel, (5, words_dim), padding=(4, 0))
+        self.conv3 = nn.Conv2d(input_channel, self.file_channel, (7, words_dim), padding=(6, 0))
 
         if self.batchnorm:
-            self.batchnorm1 = nn.BatchNorm2d(self.sentence_channel)
-            self.batchnorm2 = nn.BatchNorm2d(self.sentence_channel)
-            self.batchnorm3 = nn.BatchNorm2d(self.sentence_channel)
+            self.batchnorm1 = nn.BatchNorm2d(self.file_channel)
+            self.batchnorm2 = nn.BatchNorm2d(self.file_channel)
+            self.batchnorm3 = nn.BatchNorm2d(self.file_channel)
 
         if self.dropblock_prob > 0:
             self.dropblock = LinearScheduler(
@@ -88,7 +89,7 @@ class FileEncoder(nn.Module):
 
         if self.dynamic_pool:
             x = [self.dynamic_pool(i).squeeze(2) for i in x]  # (batch, channel_output, dp) * Ks
-            x = [i.view(-1, self.sentence_channel * self.dynamic_pool_length) for i in x]  # (batch, dp * channel_output) * Ks
+            x = [i.view(-1, self.file_channel * self.dynamic_pool_length) for i in x]  # (batch, dp * channel_output) * Ks
         else:
             x = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in x]  # (batch, channel_output, ~=sent_len) * Ks
 

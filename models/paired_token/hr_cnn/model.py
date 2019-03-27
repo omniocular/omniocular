@@ -19,8 +19,13 @@ class HRCNN(nn.Module):
         self.dynamic_pool_length = config.dynamic_pool_length
         self.has_bottleneck = config.bottleneck_layer
         self.bottleneck_units = config.bottleneck_units
-        self.collection_encoder = CollectionEncoder(config)
         self.filter_widths = 6
+
+        config.vocab = config.dataset.CODE1_FIELD.vocab.vectors
+        self.collection_encoder1 = CollectionEncoder(config)
+
+        config.vocab = config.dataset.CODE2_FIELD.vocab.vectors
+        self.collection_encoder2 = CollectionEncoder(config)
 
         self.dropout = nn.Dropout(config.dropout)
 
@@ -46,8 +51,8 @@ class HRCNN(nn.Module):
             self.steps_ema = 0.0
 
     def forward(self, x1, x2, **kwargs):
-        x1 = self.collection_encoder(x1)
-        x2 = self.collection_encoder(x2)
+        x1 = self.collection_encoder1(x1)
+        x2 = self.collection_encoder2(x2)
         x = torch.cat([x1, x2], 1)
 
         x = self.dropout(x)

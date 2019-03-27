@@ -14,11 +14,11 @@ def get_args():
     parser.add_argument('--weight-decay', type=float, default=0)
 
     parser.add_argument('--output-channel', type=int, default=100)
-    parser.add_argument('--sentence-channel', type=int, default=100)
+    parser.add_argument('--file-channel', type=int, default=100)
     parser.add_argument('--dynamic-pool', action='store_true')
     parser.add_argument('--dynamic-pool-length', type=int, default=8)
     parser.add_argument('--bottleneck-layer', action='store_true')
-    parser.add_argument('--bottleneck-units', type=int, default=100)
+    parser.add_argument('--bottleneck-units', type=int, default=50)
 
     parser.add_argument('--dropout', type=float, default=0.5)
     parser.add_argument('--dropblock', type=float, default=0.0)
@@ -27,8 +27,8 @@ def get_args():
     parser.add_argument('--embed-droprate', type=float, default=0.0)
     parser.add_argument('--batchnorm', action='store_true')
 
-    parser.add_argument('--word-vectors-dir', default=os.path.join(os.pardir, 'omniocular-data', 'embeddings', 'word2vec'))
-    parser.add_argument('--word-vectors-file', default='GoogleNews-vectors-negative300.txt')
+    parser.add_argument('--word-vectors-dir', default=os.path.join(os.pardir, 'omniocular-data', 'embeddings'))
+    parser.add_argument('--word-vectors-file', default='java1k_size300_min10.txt')
     parser.add_argument('--save-path', type=str, default=os.path.join('hr_cnn', 'saves'))
     parser.add_argument('--resume-snapshot', type=str)
     parser.add_argument('--trained-model', type=str)

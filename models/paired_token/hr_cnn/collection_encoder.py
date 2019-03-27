@@ -23,9 +23,9 @@ class CollectionEncoder(nn.Module):
         self.filter_widths = 3
 
         input_channel = 3
-        input_channel_dim = config.sentence_channel * self.dynamic_pool_length \
+        input_channel_dim = config.file_channel * self.dynamic_pool_length \
             if self.dynamic_pool \
-            else config.sentence_channel
+            else config.file_channel
 
         self.conv1 = nn.Conv2d(input_channel, self.output_channel, (3, input_channel_dim), padding=(2, 0))
         self.conv2 = nn.Conv2d(input_channel, self.output_channel, (5, input_channel_dim), padding=(4, 0))
