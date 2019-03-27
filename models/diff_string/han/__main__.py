@@ -9,7 +9,7 @@ import torch.onnx
 from common.evaluation import EvaluatorFactory
 from common.train import TrainerFactory
 from datasets.aapd import AAPDHierarchical as AAPD
-from datasets.vulas_diff import VulasDiffHierarchical as IMDB
+from datasets.vulas_diff_string import VulasDiffHierarchical as IMDB
 from datasets.sst import SST1
 from datasets.sst import SST2
 from datasets.reuters import ReutersHierarchical as Reuters

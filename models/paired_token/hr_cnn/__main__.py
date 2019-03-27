@@ -7,9 +7,9 @@ import torch
 
 from common.evaluation import EvaluatorFactory
 from common.train import TrainerFactory
-from datasets.vulas_diff_string import VulasDiff
-from models.diff_string.kim_cnn.args import get_args
-from models.diff_string.kim_cnn.model import KimCNN
+from models.paired_token.hr_cnn.args import get_args
+from models.paired_token.hr_cnn.model import HRCNN
+from datasets.vulas_paired_token import VulasPairedTokenHierarchical
 
 
 class UnknownWordVecCache(object):
@@ -44,6 +44,8 @@ def evaluate_dataset(split_name, dataset_cls, model, embedding, loader, batch_si
     saved_model_evaluator = EvaluatorFactory.get_evaluator(dataset_cls, model, embedding, loader, batch_size, device)
     if hasattr(saved_model_evaluator, 'is_multilabel'):
         saved_model_evaluator.is_multilabel = is_multilabel
+    if hasattr(saved_model_evaluator, 'ignore_lengths'):
+        saved_model_evaluator.ignore_lengths = True
 
     scores, metric_names = saved_model_evaluator.get_scores()
     print('Evaluation metrics for', split_name)
@@ -71,7 +73,7 @@ if __name__ == '__main__':
     logger = get_logger()
 
     dataset_map = {
-        'VulasDiff': VulasDiff
+        'VulasPairedToken': VulasPairedTokenHierarchical
     }
 
     if args.dataset not in dataset_map:
@@ -86,7 +88,7 @@ if __name__ == '__main__':
     config = deepcopy(args)
     config.dataset = train_iter.dataset
     config.target_class = train_iter.dataset.NUM_CLASSES
-    config.words_num = len(train_iter.dataset.TEXT_FIELD.vocab)
+    config.words_num = len(train_iter.dataset.CODE1_FIELD.vocab)
 
     print('Dataset:', args.dataset)
     print('No. of target classes:', train_iter.dataset.NUM_CLASSES)
@@ -100,16 +102,19 @@ if __name__ == '__main__':
         else:
             model = torch.load(args.resume_snapshot, map_location=lambda storage, location: storage)
     else:
-        model = KimCNN(config)
+        model = HRCNN(config)
         if args.cuda:
             model.cuda()
 
     parameter = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = torch.optim.Adam(parameter, lr=args.lr, weight_decay=args.weight_decay)
 
-    train_evaluator = EvaluatorFactory.get_evaluator(dataset_map[args.dataset], model, None, train_iter, args.batch_size, args.gpu)
-    test_evaluator = EvaluatorFactory.get_evaluator(dataset_map[args.dataset], model, None, test_iter, args.batch_size, args.gpu)
-    dev_evaluator = EvaluatorFactory.get_evaluator(dataset_map[args.dataset], model, None, dev_iter, args.batch_size, args.gpu)
+    train_evaluator = EvaluatorFactory.get_evaluator(dataset_map[args.dataset], model, None, train_iter,
+                                                     args.batch_size, args.gpu)
+    test_evaluator = EvaluatorFactory.get_evaluator(dataset_map[args.dataset], model, None, test_iter, args.batch_size,
+                                                    args.gpu)
+    dev_evaluator = EvaluatorFactory.get_evaluator(dataset_map[args.dataset], model, None, dev_iter, args.batch_size,
+                                                   args.gpu)
 
     if hasattr(train_evaluator, 'is_multilabel'):
         train_evaluator.is_multilabel = dataset_class.IS_MULTILABEL
@@ -125,8 +130,14 @@ if __name__ == '__main__':
         'patience': args.patience,
         'model_outfile': args.save_path,
         'logger': logger,
+        'ignore_lengths': True,
         'is_multilabel': dataset_class.IS_MULTILABEL
     }
+
+    if hasattr(dev_evaluator, 'ignore_lengths'):
+        dev_evaluator.ignore_lengths = True
+    if hasattr(test_evaluator, 'ignore_lengths'):
+        test_evaluator.ignore_lengths = True
 
     trainer = TrainerFactory.get_trainer(args.dataset, model, None, train_iter, trainer_config, train_evaluator, test_evaluator, dev_evaluator)
 
