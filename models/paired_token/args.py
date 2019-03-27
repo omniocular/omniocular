@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 
 
 def get_args():
-    parser = ArgumentParser(description="Omniocular")
+    parser = ArgumentParser(description="Omniocular/Models/PairedToken")
 
     parser.add_argument('--no-cuda', action='store_false', dest='cuda')
     parser.add_argument('--gpu', type=int, default=0)
