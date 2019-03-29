@@ -7,9 +7,9 @@ import torch
 
 from common.evaluation import EvaluatorFactory
 from common.train import TrainerFactory
-from datasets.vulas_diff_string import VulasDiff
-from models.diff_string.reg_cnn.args import get_args
-from models.diff_string.reg_cnn.model import RegCNN
+from datasets.vulas_diff_token import VulasDiffToken
+from models.diff_token.reg_cnn.args import get_args
+from models.diff_token.reg_cnn.model import RegCNN
 
 
 class UnknownWordVecCache(object):
@@ -71,7 +71,7 @@ if __name__ == '__main__':
     logger = get_logger()
 
     dataset_map = {
-        'VulasDiff': VulasDiff
+        'VulasDiff': VulasDiffToken
     }
 
     if args.dataset not in dataset_map:
@@ -86,7 +86,7 @@ if __name__ == '__main__':
     config = deepcopy(args)
     config.dataset = train_iter.dataset
     config.target_class = train_iter.dataset.NUM_CLASSES
-    config.words_num = len(train_iter.dataset.TEXT_FIELD.vocab)
+    config.words_num = len(train_iter.dataset.CODE_FIELD.vocab)
 
     print('Dataset:', args.dataset)
     print('No. of target classes:', train_iter.dataset.NUM_CLASSES)

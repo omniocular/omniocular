@@ -4,8 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models.diff_string.reg_cnn.dropblock import DropBlock1D, LinearScheduler
-from models.diff_string.reg_lstm.embed_regularize import embedded_dropout
+from models.diff_token.reg_cnn.dropblock import DropBlock1D, LinearScheduler
+from models.diff_token.reg_lstm.embed_regularize import embedded_dropout
 
 
 class RegCNN(nn.Module):
@@ -34,12 +34,12 @@ class RegCNN(nn.Module):
             rand_embed_init = torch.Tensor(words_num, words_dim).uniform_(-0.25, 0.25)
             self.embed = nn.Embedding.from_pretrained(rand_embed_init, freeze=False)
         elif config.mode == 'static':
-            self.static_embed = nn.Embedding.from_pretrained(dataset.TEXT_FIELD.vocab.vectors, freeze=True)
+            self.static_embed = nn.Embedding.from_pretrained(dataset.CODE_FIELD.vocab.vectors, freeze=True)
         elif config.mode == 'non-static':
-            self.non_static_embed = nn.Embedding.from_pretrained(dataset.TEXT_FIELD.vocab.vectors, freeze=False)
+            self.non_static_embed = nn.Embedding.from_pretrained(dataset.CODE_FIELD.vocab.vectors, freeze=False)
         elif config.mode == 'multichannel':
-            self.static_embed = nn.Embedding.from_pretrained(dataset.TEXT_FIELD.vocab.vectors, freeze=True)
-            self.non_static_embed = nn.Embedding.from_pretrained(dataset.TEXT_FIELD.vocab.vectors, freeze=False)
+            self.static_embed = nn.Embedding.from_pretrained(dataset.CODE_FIELD.vocab.vectors, freeze=True)
+            self.non_static_embed = nn.Embedding.from_pretrained(dataset.CODE_FIELD.vocab.vectors, freeze=False)
             input_channel = 2
         else:
             print("Unsupported Mode")

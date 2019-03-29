@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models.diff_string.reg_cnn.dropblock import DropBlock1D, LinearScheduler
-from models.diff_string.reg_lstm.embed_regularize import embedded_dropout
+from models.diff_token.reg_cnn.dropblock import DropBlock1D, LinearScheduler
+from models.diff_token.reg_lstm.embed_regularize import embedded_dropout
 
 
 class FileEncoder(nn.Module):

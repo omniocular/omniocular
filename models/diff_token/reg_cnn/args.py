@@ -1,10 +1,10 @@
 import os
 
-import models.diff_string.args
+import models.diff_token.args
 
 
 def get_args():
-    parser = models.diff_string.args.get_args()
+    parser = models.diff_token.args.get_args()
 
     parser.add_argument('--dataset', type=str, default='VulasDiff', choices=['VulasDiff'])
     parser.add_argument('--mode', type=str, default='multichannel', choices=['rand', 'static', 'non-static', 'multichannel'])

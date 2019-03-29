@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import numpy as np
 
 from sklearn import metrics
-from .evaluator import Evaluator
+from .generic_evaluator import Evaluator
 
 
 class PairedTokenEvaluator(Evaluator):

@@ -7,13 +7,13 @@ import torch
 import torch.nn.functional as F
 from tensorboardX import SummaryWriter
 
-from .trainer import Trainer
+from .generic_trainer import Trainer
 
 
-class DiffStringTrainer(Trainer):
+class DiffTokenTrainer(Trainer):
 
     def __init__(self, model, embedding, train_loader, trainer_config, train_evaluator, test_evaluator, dev_evaluator):
-        super(DiffStringTrainer, self).__init__(model, embedding, train_loader, trainer_config, train_evaluator, test_evaluator, dev_evaluator)
+        super(DiffTokenTrainer, self).__init__(model, embedding, train_loader, trainer_config, train_evaluator, test_evaluator, dev_evaluator)
         self.config = trainer_config
         self.early_stop = False
         self.best_dev_f1 = 0
@@ -37,14 +37,14 @@ class DiffStringTrainer(Trainer):
 
             if hasattr(self.model, 'tar') and self.model.tar:
                 if 'ignore_lengths' in self.config and self.config['ignore_lengths']:
-                    scores, rnn_outs = self.model(batch.text)
+                    scores, rnn_outs = self.model(batch.code)
                 else:
-                    scores, rnn_outs = self.model(batch.text[0], lengths=batch.text[1])
+                    scores, rnn_outs = self.model(batch.code[0], lengths=batch.code[1])
             else:
                 if 'ignore_lengths' in self.config and self.config['ignore_lengths']:
-                    scores = self.model(batch.text)
+                    scores = self.model(batch.code)
                 else:
-                    scores = self.model(batch.text[0], lengths=batch.text[1])
+                    scores = self.model(batch.code[0], lengths=batch.code[1])
 
             if 'is_multilabel' in self.config and self.config['is_multilabel']:
                 predictions = F.sigmoid(scores).round().long()
@@ -52,6 +52,7 @@ class DiffStringTrainer(Trainer):
                     if np.array_equal(tensor1, tensor2):
                         n_correct += 1
                 loss = F.binary_cross_entropy_with_logits(scores, batch.label.float())
+
             else:
                 for tensor1, tensor2 in zip(torch.argmax(scores, dim=1), torch.argmax(batch.label.data, dim=1)):
                     if np.array_equal(tensor1, tensor2):
