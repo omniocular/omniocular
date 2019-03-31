@@ -52,7 +52,7 @@ def get_args():
 
     parser.add_argument("--env", type=str, default=None, help="env")
     parser.add_argument("--print_sample_cycle", type=int, default=10, help="print_sample_cycle")
-    parser.add_argument("--eval_method", type=str, default="subtoken", help="eval_method")
+    parser.add_argument("--eval_method", type=str, default="exact", help="eval_method")
 
     parser.add_argument("--find_hyperparams", type=bool, default=False,
                         help="find optimal hyperparameters")

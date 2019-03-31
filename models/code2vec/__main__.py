@@ -154,7 +154,7 @@ def _train(model, optimizer, criterion, option, reader, builder, trial):
             if args.env == "tensorboard":
                 summary_writer.add_scalar(
                     'metric/train_loss', train_loss, epoch)
-                summary_writer.add_scalar('metric/test_loss', test_loss, epoch)
+                summary_writer.add_scalar('metric/test_loss', dev_loss, epoch)
                 summary_writer.add_scalar('metric/accuracy', dev_accuracy, epoch)
                 summary_writer.add_scalar('metric/precision', dev_precision, epoch)
                 summary_writer.add_scalar('metric/recall', dev_recall, epoch)
