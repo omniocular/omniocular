@@ -72,7 +72,7 @@ if __name__ == '__main__':
         print('Warning: Using CPU for training')
 
     dataset_map = {
-        'VulasDiff': VulasDiffToken
+        'VulasDiffToken': VulasDiffToken
     }
 
     if args.dataset not in dataset_map:

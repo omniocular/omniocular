@@ -71,7 +71,7 @@ if __name__ == '__main__':
     logger = get_logger()
 
     dataset_map = {
-        'VulasDiff': VulasDiffToken
+        'VulasDiffToken': VulasDiffToken
     }
 
     if args.dataset not in dataset_map:
