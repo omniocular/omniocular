@@ -1,49 +1,31 @@
-# Castor
-
-This is the common repo for PyTorch deep learning models by the Data Systems Group at the University of Waterloo.
+# Omniocular
+Omniocular is a framework for building deep learning models on code, implemented in PyTorch by the Data Systems Group at the University of Waterloo. 
 
 ## Models
 
-### Predictions Over One Input Text Sequence
-
-For sentiment analysis, topic classification, etc.
-
-+ [Kim CNN](models/diff_token/kim_cnn/): Baseline convolutional neural network for sentence classification [(Kim, EMNLP 2014)](http://www.aclweb.org/anthology/D14-1181)
-+ [Conv-RNN](./conv_rnn/): Convolutional RNN [(Wang et al., KDD 2017)](https://dl.acm.org/citation.cfm?id=3098140)
-+ [HAN](models/diff_token/han/): Hierarchical Attention Networks [(Zichao, et al, NAACL 2016)](https://www.cs.cmu.edu/~hovy/papers/16HLT-hierarchical-attention-networks.pdf)
-+ [LSTM-Reg](models/diff_token/reg_lstm/): Standard LSTM with Regularization [(Merity et al.)](https://arxiv.org/abs/1708.02182)
-+ [XML-CNN](models/xml_cnn/): CNNs for Extreme Multi-label Text Classification [(Liu et al., SIGIR 2017)](http://nyc.lti.cs.cmu.edu/yiming/Publications/jliu-sigir17.pdf)
-+ [Char-CNN](.//): Character-level Convolutional Network [(Zhang et al., NIPS 2015)](http://papers.nips.cc/paper/5782-character-level-convolutional-networks-for-text-classification.pdf)
-
-### Predictions Over Two Input Text Sequences
-
-For paraphrase detection, question answering, etc.
-
-+ [SM-CNN](./sm_cnn/): Siamese CNN for ranking texts [(Severyn and Moschitti, SIGIR 2015)](https://dl.acm.org/citation.cfm?id=2767738)
-+ [MP-CNN](./mp_cnn/): Multi-Perspective CNN [(He et al., EMNLP 2015)](http://anthology.aclweb.org/D/D15/D15-1181.pdf)
-+ [NCE](./nce/): Noise-Contrastive Estimation for answer selection applied on SM-CNN and MP-CNN [(Rao et al., CIKM 2016)](https://dl.acm.org/citation.cfm?id=2983872)
-+ [VDPWI](./vdpwi): Very-Deep Pairwise Word Interaction NNs for modeling textual similarity [(He and Lin, NAACL 2016)](http://www.aclweb.org/anthology/N16-1108)
-+ [IDF Baseline](./idf_baseline/): IDF overlap between question and candidate answers
++ [Kim CNN](models/kim_cnn/): CNNs for sentence classification [(Kim, EMNLP 2014)](http://www.aclweb.org/anthology/D14-1181)
++ [HAN](models/han/): Hierarchical Attention Networks [(Zichao, et al, NAACL 2016)](https://www.cs.cmu.edu/~hovy/papers/16HLT-hierarchical-attention-networks.pdf)
++ [Reg-LSTM](models/reg_lstm/): Regularized LSTM for document classification [(Merity et al.)](https://arxiv.org/abs/1708.02182)
++ [XML-CNN](models/xml_cnn/): CNNs for extreme multi-label text classification [(Liu et al., SIGIR 2017)](http://nyc.lti.cs.cmu.edu/yiming/Publications/jliu-sigir17.pdf)
++ [Char-CNN](models/char_cnn/): Character-level Convolutional Network [(Zhang et al., NIPS 2015)](http://papers.nips.cc/paper/5782-character-level-convolutional-networks-for-text-classification.pdf)
 
 Each model directory has a `README.md` with further details.
 
 ## Setting up PyTorch
 
-**If you are an internal Castor contributor using GPU machines in the lab, follow the instructions [here](./docs/internal-instructions.md).**
-
-Castor is designed for Python 3.6 and [PyTorch](https://pytorch.org/) 0.4.
+Omniocular is designed for Python 3.6 and [PyTorch](https://pytorch.org/) 0.4.
 PyTorch recommends [Anaconda](https://www.anaconda.com/distribution/) for managing your environment.
-We'd recommend creating a custom environment as follows:
+We recommend creating a custom environment as follows:
 
 ```
-$ conda create --name castor python=3.6
-$ source activate castor
+$ conda create --name omniocular python=3.6
+$ source activate omniocular
 ```
 
-And installing the packages as follows:
+And installing PyTorch as follows:
 
 ```
-$ conda install pytorch torchvision -c pytorch
+$ conda install pytorch=0.4.1 cuda92 -c pytorch
 ```
 
 Other Python packages we use can be installed via pip:
@@ -52,49 +34,30 @@ Other Python packages we use can be installed via pip:
 $ pip install -r requirements.txt
 ```
 
-Code depends on data from NLTK (e.g., stopwords) so you'll have to download them. Run the Python interpreter and type the commands:
+## Datasets
 
-```python
->>> import nltk
->>> nltk.download()
-```
-
-Finally, run the following inside the `utils` directory to build the `trec_eval` tool for evaluating certain datasets.
+Download the datasets and embeddings from the 
+[`omniocular-data`](https://git.uwaterloo.ca/arkeshav/omniocular-data) repository:
 
 ```bash
-$ ./get_trec_eval.sh
+$ git clone https://github.com/omniocular/omniocular.git
+$ git clone https://git.uwaterloo.ca/arkeshav/omniocular-data.git
 ```
 
-## Data and Pre-Trained Models
-
-**If you are an internal Castor contributor using GPU machines in the lab, follow the instructions [here](./docs/internal-instructions.md).**
-
-To fully take advantage of code here, clone these other two repos:
-
-+ [`Castor-data`](https://git.uwaterloo.ca/jimmylin/Castor-data): embeddings, datasets, etc.
-+ [`Caster-models`](https://git.uwaterloo.ca/jimmylin/Castor-models): pre-trained models
-
-Organize your directory structure as follows:
+Datasets, along with embeddings should be placed in the `omniocular-data` folder, with the following directory structure: 
 
 ```
 .
-├── Castor
-├── Castor-data
-└── Castor-models
+├── omniocular
+└── omniocular-data
 ```
 
-For example (using HTTPS):
+After cloning the omniocular-data repo, you need to unzip the embeddings and run the preprocessing script:
 
 ```bash
-$ git clone https://github.com/castorini/Castor.git
-$ git clone https://git.uwaterloo.ca/jimmylin/Castor-data.git
-$ git clone https://git.uwaterloo.ca/jimmylin/Castor-models.git
+cd omniocular-data/embeddings/word2vec 
+gzip -d java1k_size300_min10.bin.bin.gz 
+python bin2txt.py java1k_size300_min10.bin.bin java1k_size300_min10.bin.txt 
 ```
 
-After cloning the Castor-data repo, you need to unzip embeddings and run data pre-processing scripts. You can choose
-to follow instructions under each dataset and embedding directory separately, or just run the following script in Castor-data
-to do all of the steps for you:
-
-```bash
-$ ./setup.sh
-```
+**If you are an internal Omniocular contributor using the machines in the lab, follow the instructions [here](docs/internal-instructions.md).**
