@@ -82,7 +82,7 @@ class PairedTokenTrainer(Trainer):
 
     def train(self, epochs):
         self.start = time.time()
-        header = '  Time Epoch Iteration Progress    (%Epoch)   Loss     Accuracy'
+        header = '  Time Epoch Iteration Progress      %Epoch Loss         Accuracy'
         dev_header = '  Time Epoch Iteration Progress     Dev/Acc. Dev/Pr.  Dev/Recall   Dev/F1       Dev/Loss'
         os.makedirs(self.model_outfile, exist_ok=True)
         os.makedirs(os.path.join(self.model_outfile, self.train_loader.dataset.NAME), exist_ok=True)
