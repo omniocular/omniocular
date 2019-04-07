@@ -4,8 +4,8 @@ import torch.nn as nn
 
 import torch.nn.functional as F
 
-from models.diff_string.reg_lstm.weight_drop import WeightDrop
-from models.diff_string.reg_lstm.embed_regularize import embedded_dropout
+from models.diff_token.reg_lstm.weight_drop import WeightDrop
+from models.diff_token.reg_lstm.embed_regularize import embedded_dropout
 
 
 class RegLSTM(nn.Module):
@@ -30,9 +30,6 @@ class RegLSTM(nn.Module):
             self.static_embed = nn.Embedding.from_pretrained(dataset.TEXT_FIELD.vocab.vectors, freeze=True)
         elif config.mode == 'non-static':
             self.non_static_embed = nn.Embedding.from_pretrained(dataset.TEXT_FIELD.vocab.vectors, freeze=False)
-        else:
-            print("Unsupported Mode")
-            exit()
 
         self.lstm = nn.LSTM(config.words_dim, config.hidden_dim, dropout=config.dropout, num_layers=config.num_layers,
                             bidirectional=self.is_bidirectional, batch_first=True)
@@ -74,7 +71,7 @@ class RegLSTM(nn.Module):
         rnn_outs_temp = rnn_outs
 
         if lengths is not None:
-            rnn_outs,_ = torch.nn.utils.rnn.pad_packed_sequence(rnn_outs, batch_first=True)
+            rnn_outs, _ = torch.nn.utils.rnn.pad_packed_sequence(rnn_outs, batch_first=True)
             rnn_outs_temp, _ = torch.nn.utils.rnn.pad_packed_sequence(rnn_outs_temp, batch_first=True)
 
         x = F.relu(torch.transpose(rnn_outs_temp, 1, 2))

@@ -6,7 +6,7 @@ import models.diff_token.args
 def get_args():
     parser = models.diff_token.args.get_args()
 
-    parser.add_argument('--dataset', type=str, default='VulasPairedToken', choices=['VulasPairedToken'])
+    parser.add_argument('--dataset', type=str, default='VulasDiffToken', choices=['VulasDiffToken'])
     parser.add_argument('--mode', type=str, default='multichannel', choices=['rand', 'static', 'non-static', 'multichannel'])
     parser.add_argument('--words-dim', type=int, default=300)
     parser.add_argument('--embed-dim', type=int, default=300)
@@ -29,7 +29,7 @@ def get_args():
 
     parser.add_argument('--word-vectors-dir', default=os.path.join(os.pardir, 'omniocular-data', 'embeddings'))
     parser.add_argument('--word-vectors-file', default='java1k_size300_min10.txt')
-    parser.add_argument('--save-path', type=str, default=os.path.join('models', 'paired_token', 'hr_cnn', 'saves'))
+    parser.add_argument('--save-path', type=str, default=os.path.join('models', 'diff_token', 'hr_cnn', 'saves'))
     parser.add_argument('--resume-snapshot', type=str)
     parser.add_argument('--trained-model', type=str)
 

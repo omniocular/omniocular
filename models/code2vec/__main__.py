@@ -1,26 +1,19 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-# Adapted from Isao Sonobe's code: https://github.com/sonoisa/code2vec
-
-from os import path
-import sys
 import logging
+import sys
+from os import path
 
 import numpy as np
-
-from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 import torch
 import torch.nn as nn
-from torch.nn.parameter import Parameter
 import torch.nn.functional as F
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 from torch.utils.data import DataLoader
 
-
+from datasets.vulas_diff_paths import DatasetReader, DatasetBuilder
 from models.code2vec.args import get_args
 from models.code2vec.model import Code2Vec
-from datasets.vulas_diff_paths import DatasetReader, DatasetBuilder
+
+# Adapted from https://github.com/sonoisa/code2vec
 
 sys.path.append('.')
 
@@ -132,42 +125,40 @@ def _train(model, optimizer, criterion, option, reader, builder, trial):
 
                 train_loss += loss.item()
 
-            # builder.refresh_test_dataset()
+            dev_data_loader = DataLoader(
+                builder.dev_dataset, batch_size=option.batch_size,
+                shuffle=True, num_workers=args.num_workers)
+            dev_loss, dev_accuracy, dev_precision, dev_recall, dev_f1 = test(
+                model, dev_data_loader, criterion, option, reader.label_vocab)
+
             test_data_loader = DataLoader(
                 builder.test_dataset, batch_size=option.batch_size,
                 shuffle=True, num_workers=args.num_workers)
-            test_loss, accuracy, precision, recall, f1 = test(
+            test_loss, test_accuracy, test_precision, test_recall, test_f1 = test(
                 model, test_data_loader, criterion, option, reader.label_vocab)
 
-            if args.env == "floyd":
-                print("epoch {0}".format(epoch))
-                print('{{"metric": "train_loss", "value": {0}}}'.format(train_loss))
-                print('{{"metric": "test_loss", "value": {0}}}'.format(test_loss))
-                print('{{"metric": "accuracy", "value": {0}}}'.format(accuracy))
-                print('{{"metric": "precision", "value": {0}}}'.format(precision))
-                print('{{"metric": "recall", "value": {0}}}'.format(recall))
-                print('{{"metric": "f1", "value": {0}}}'.format(f1))
-            else:
-                logger.info("epoch {0}".format(epoch))
-                logger.info(
-                    '{{"metric": "train_loss", "value": {0}}}'.format(train_loss))
-                logger.info(
-                    '{{"metric": "test_loss", "value": {0}}}'.format(test_loss))
-                logger.info(
-                    '{{"metric": "accuracy", "value": {0}}}'.format(accuracy))
-                logger.info(
-                    '{{"metric": "precision", "value": {0}}}'.format(precision))
-                logger.info(
-                    '{{"metric": "recall", "value": {0}}}'.format(recall))
-                logger.info('{{"metric": "f1", "value": {0}}}'.format(f1))
+            print("epoch {0}".format(epoch))
+            print('{{"metric": "train_loss", "value": {0}}}'.format(train_loss))
+            print('{{"metric": "dev_loss", "value": {0}}}'.format(dev_loss))
+            print('{{"metric": "test_loss", "value": {0}}}'.format(test_loss))
+            print('Metrics for dev split:')
+            print('{{"metric": "accuracy", "value": {0}}}'.format(dev_accuracy))
+            print('{{"metric": "precision", "value": {0}}}'.format(dev_precision))
+            print('{{"metric": "recall", "value": {0}}}'.format(dev_recall))
+            print('{{"metric": "f1", "value": {0}}}'.format(dev_f1))
+            print('Metrics for test split:')
+            print('{{"metric": "accuracy", "value": {0}}}'.format(test_accuracy))
+            print('{{"metric": "precision", "value": {0}}}'.format(test_precision))
+            print('{{"metric": "recall", "value": {0}}}'.format(test_recall))
+            print('{{"metric": "f1", "value": {0}}}'.format(test_f1))
             if args.env == "tensorboard":
                 summary_writer.add_scalar(
                     'metric/train_loss', train_loss, epoch)
-                summary_writer.add_scalar('metric/test_loss', test_loss, epoch)
-                summary_writer.add_scalar('metric/accuracy', accuracy, epoch)
-                summary_writer.add_scalar('metric/precision', precision, epoch)
-                summary_writer.add_scalar('metric/recall', recall, epoch)
-                summary_writer.add_scalar('metric/f1', f1, epoch)
+                summary_writer.add_scalar('metric/test_loss', dev_loss, epoch)
+                summary_writer.add_scalar('metric/accuracy', dev_accuracy, epoch)
+                summary_writer.add_scalar('metric/precision', dev_precision, epoch)
+                summary_writer.add_scalar('metric/recall', dev_recall, epoch)
+                summary_writer.add_scalar('metric/f1', dev_f1, epoch)
 
             if trial is not None:
                 intermediate_value = 1.0 - f1
@@ -204,9 +195,9 @@ def _train(model, optimizer, criterion, option, reader, builder, trial):
             if last_loss is None \
                     or train_loss < last_loss \
                     or last_accuracy is None \
-                    or last_accuracy < accuracy:
+                    or last_accuracy < dev_accuracy:
                 last_loss = train_loss
-                last_accuracy = accuracy
+                last_accuracy = dev_accuracy
                 bad_count = 0
             else:
                 bad_count += 1
@@ -276,10 +267,9 @@ def test(model, data_loader, criterion, option, label_vocab):
 
 
 def exact_match(expected_labels, actual_labels):
-    precision = precision_score(
-        expected_labels, actual_labels, average='weighted')
-    recall = recall_score(expected_labels, actual_labels, average='weighted')
-    f1 = f1_score(expected_labels, actual_labels, average='weighted')
+    precision = precision_score(expected_labels, actual_labels, average=None)[0]
+    recall = recall_score(expected_labels, actual_labels, average=None)[0]
+    f1 = f1_score(expected_labels, actual_labels, average=None)[0]
     accuracy = accuracy_score(expected_labels, actual_labels)
     return accuracy, precision, recall, f1
 

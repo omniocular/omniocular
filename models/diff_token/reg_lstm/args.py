@@ -1,12 +1,12 @@
 import os
 
-import models.diff_string.args
+import models.diff_token.args
 
 
 def get_args():
-    parser = models.diff_string.args.get_args()
+    parser = models.diff_token.args.get_args()
 
-    parser.add_argument('--dataset', type=str, default='VulasDiff', choices=['VulasDiff'])
+    parser.add_argument('--dataset', type=str, default='VulasDiffToken', choices=['VulasDiffToken'])
     parser.add_argument('--mode', type=str, default='static', choices=['rand', 'static', 'non-static'])
     parser.add_argument('--bidirectional', action='store_true')
     parser.add_argument('--bottleneck-layer', action='store_true')
@@ -27,7 +27,7 @@ def get_args():
 
     parser.add_argument('--word-vectors-dir', default=os.path.join(os.pardir, 'omniocular-data', 'embeddings'))
     parser.add_argument('--word-vectors-file', default='java1k_size300_min10.txt')
-    parser.add_argument('--save-path', type=str, default=os.path.join('reg_lstm', 'saves'))
+    parser.add_argument('--save-path', type=str, default=os.path.join('models', 'diff_token', 'reg_lstm', 'saves'))
     parser.add_argument('--resume-snapshot', type=str)
     parser.add_argument('--trained-model', type=str)
 

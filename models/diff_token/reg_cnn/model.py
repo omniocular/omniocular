@@ -4,8 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models.diff_string.reg_cnn.dropblock import DropBlock1D, LinearScheduler
-from models.diff_string.reg_lstm.embed_regularize import embedded_dropout
+from models.diff_token.reg_cnn.dropblock import DropBlock1D, LinearScheduler
+from models.diff_token.reg_lstm.embed_regularize import embedded_dropout
 
 
 class RegCNN(nn.Module):
@@ -13,16 +13,17 @@ class RegCNN(nn.Module):
     def __init__(self, config):
         super().__init__()
         dataset = config.dataset
-        self.output_channel = config.output_channel
         target_class = config.target_class
         words_num = config.words_num
         words_dim = config.words_dim
+
         self.mode = config.mode
         self.batchnorm = config.batchnorm
         self.beta_ema = config.beta_ema
         self.embed_droprate = config.embed_droprate
         self.dynamic_pool = config.dynamic_pool
         self.dynamic_pool_length = config.dynamic_pool_length
+        self.output_channel = config.output_channel
         self.has_bottleneck = config.bottleneck_layer
         self.bottleneck_units = config.bottleneck_units
         self.dropblock_prob = config.dropblock
@@ -34,16 +35,13 @@ class RegCNN(nn.Module):
             rand_embed_init = torch.Tensor(words_num, words_dim).uniform_(-0.25, 0.25)
             self.embed = nn.Embedding.from_pretrained(rand_embed_init, freeze=False)
         elif config.mode == 'static':
-            self.static_embed = nn.Embedding.from_pretrained(dataset.TEXT_FIELD.vocab.vectors, freeze=True)
+            self.static_embed = nn.Embedding.from_pretrained(dataset.CODE_FIELD.vocab.vectors, freeze=True)
         elif config.mode == 'non-static':
-            self.non_static_embed = nn.Embedding.from_pretrained(dataset.TEXT_FIELD.vocab.vectors, freeze=False)
+            self.non_static_embed = nn.Embedding.from_pretrained(dataset.CODE_FIELD.vocab.vectors, freeze=False)
         elif config.mode == 'multichannel':
-            self.static_embed = nn.Embedding.from_pretrained(dataset.TEXT_FIELD.vocab.vectors, freeze=True)
-            self.non_static_embed = nn.Embedding.from_pretrained(dataset.TEXT_FIELD.vocab.vectors, freeze=False)
+            self.static_embed = nn.Embedding.from_pretrained(dataset.CODE_FIELD.vocab.vectors, freeze=True)
+            self.non_static_embed = nn.Embedding.from_pretrained(dataset.CODE_FIELD.vocab.vectors, freeze=False)
             input_channel = 2
-        else:
-            print("Unsupported Mode")
-            exit()
 
         self.conv1 = nn.Conv2d(input_channel, self.output_channel, (3, words_dim), padding=(1, 0))
         self.conv2 = nn.Conv2d(input_channel, self.output_channel, (5, words_dim), padding=(2, 0))
@@ -103,9 +101,6 @@ class RegCNN(nn.Module):
             non_static_input = embedded_dropout(self.non_static_embed, x, dropout=self.embed_droprate if self.training else 0) if self.embed_droprate else self.non_static_embed(x)
             static_input = embedded_dropout(self.static_embed, x, dropout=self.embed_droprate if self.training else 0) if self.embed_droprate else self.static_embed(x)
             x = torch.stack([non_static_input, static_input], dim=1)  # (batch, channel_input=2, sent_len, embed_dim)
-        else:
-            print("Unsupported Mode")
-            exit()
 
         if self.batchnorm:
             x = [F.relu(self.batchnorm1(self.conv1(x))).squeeze(3),

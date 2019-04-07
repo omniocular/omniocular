@@ -3,10 +3,10 @@ import torch.nn.functional as F
 import numpy as np
 
 from sklearn import metrics
-from .evaluator import Evaluator
+from .generic_evaluator import Evaluator
 
 
-class DiffStringEvaluator(Evaluator):
+class DiffTokenEvaluator(Evaluator):
 
     def __init__(self, dataset_cls, model, embedding, data_loader, batch_size, device, keep_results=False):
         super().__init__(dataset_cls, model, embedding, data_loader, batch_size, device, keep_results)
@@ -26,14 +26,14 @@ class DiffStringEvaluator(Evaluator):
         for batch_idx, batch in enumerate(self.data_loader):
             if hasattr(self.model, 'tar') and self.model.tar:  # TAR condition
                 if self.ignore_lengths:
-                    scores, rnn_outs = self.model(batch.text)
+                    scores, rnn_outs = self.model(batch.code)
                 else:
-                    scores, rnn_outs = self.model(batch.text[0], lengths=batch.text[1])
+                    scores, rnn_outs = self.model(batch.code[0], lengths=batch.code[1])
             else:
                 if self.ignore_lengths:
-                    scores = self.model(batch.text)
+                    scores = self.model(batch.code)
                 else:
-                    scores = self.model(batch.text[0], lengths=batch.text[1])
+                    scores = self.model(batch.code[0], lengths=batch.code[1])
 
             if self.is_multilabel:
                 scores_rounded = F.sigmoid(scores).round().long()
