@@ -2,7 +2,7 @@
 <img src="https://github.com/achyudh/omniocular/blob/master/docs/omniocular_logo.png" width="480">
 </p>
 
-Omniocular is a framework for building deep learning models on code, implemented in PyTorch by the Data Systems Group at the University of Waterloo. 
+Omniocular is a framework for building deep learning models on code, implemented in PyTorch by the Data Systems Group at the University of Waterloo. Various modules in Omniocular are heavily inspired by (and are compatible with) [Hedwig](https://github.com/castorini/hedwig), a framework for dcoument classification.
 
 ## Models
 ### Predictions over a single sequence of tokens
