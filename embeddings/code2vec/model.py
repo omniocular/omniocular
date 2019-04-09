@@ -36,46 +36,55 @@ class Code2Vec(nn.Module):
                             requires_grad=True)
             ).view(-1), requires_grad=True)
         self.output_linear = nn.Linear(
-            option.encode_size, option.label_count, bias=True)
+            option.encode_size*2, option.label_count, bias=True)
         self.output_linear.bias.data.fill_(0.0)
 
-    def forward(self, starts, paths, ends):
+    def forward(self, starts_prev, paths_prev, ends_prev,
+            starts_curr, paths_curr, ends_curr):
         option = self.option
 
-        # embedding
-        embed_starts = self.terminal_embedding(starts)
-        embed_paths = self.path_embedding(paths)
-        embed_ends = self.terminal_embedding(ends)
-        combined_context_vectors = torch.cat(
-            (embed_starts, embed_paths, embed_ends), dim=2)
+        def get_code_vector(starts, paths, ends):
 
-        # FNN, Layer Normalization, tanh
-        combined_context_vectors = self.input_linear(combined_context_vectors)
-        ccv_size = combined_context_vectors.size()
-        combined_context_vectors = self.input_layer_norm(
-            combined_context_vectors.view(-1, option.encode_size)).view(ccv_size)
-        combined_context_vectors = torch.tanh(combined_context_vectors)
+            # embedding
+            embed_starts = self.terminal_embedding(starts)
+            embed_paths = self.path_embedding(paths)
+            embed_ends = self.terminal_embedding(ends)
+            combined_context_vectors = torch.cat(
+                (embed_starts, embed_paths, embed_ends), dim=2)
 
-        # dropout
-        if self.input_dropout is not None:
-            combined_context_vectors = self.input_dropout(combined_context_vectors)
+            # FNN, Layer Normalization, tanh
+            combined_context_vectors = self.input_linear(combined_context_vectors)
+            ccv_size = combined_context_vectors.size()
+            combined_context_vectors = self.input_layer_norm(
+                combined_context_vectors.view(-1, option.encode_size)).view(ccv_size)
+            combined_context_vectors = torch.tanh(combined_context_vectors)
 
-        # attention
-        attn_mask = (starts > 0).float()
-        attention = self.get_attention(combined_context_vectors, attn_mask)
+            # dropout
+            if self.input_dropout is not None:
+                combined_context_vectors = self.input_dropout(combined_context_vectors)
 
-        # code vector
-        expanded_attn = attention.unsqueeze(-1).expand_as(combined_context_vectors)
-        code_vector = torch.sum(
-            torch.mul(combined_context_vectors, expanded_attn), dim=1)
+            # attention
+            attn_mask = (starts > 0).float()
+            attention = self.get_attention(combined_context_vectors, attn_mask)
 
+            # code vector
+            expanded_attn = attention.unsqueeze(-1).expand_as(combined_context_vectors)
+            code_vector = torch.sum(
+                torch.mul(combined_context_vectors, expanded_attn), dim=1)
+
+            return code_vector
+
+        code_vector_prev = get_code_vector(starts_prev, paths_prev, ends_prev)
+        code_vector_curr = get_code_vector(starts_curr, paths_curr, ends_curr)
+
+        code_vector = torch.cat([code_vector_prev, code_vector_curr], 1)
         # FNN
         outputs = self.output_linear(code_vector)
 
         # if opt.training and opt.dropout_prob < 1.0:
         #     outputs = F.dropout(outputs, p=opt.dropout_prob, training=opt.training)
 
-        return outputs, code_vector, attention
+        return outputs, code_vector, 0 #attention
 
     def get_attention(self, vectors, mask):
         """calculate the attention of the (masked) context vetors. mask=1: meaningful value, mask=0: padded."""
