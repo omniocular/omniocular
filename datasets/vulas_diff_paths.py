@@ -16,23 +16,31 @@ logger = logging.getLogger()
 class CodeDataset(Dataset):
     """dataset for training/test"""
 
-    def __init__(self, ids, starts, paths, ends, labels, transform=None):
+    def __init__(self, ids, starts_prev, starts_curr,
+            paths_prev, paths_curr, ends_prev, ends_curr,
+            labels, transform=None):
         self.ids = ids
-        self.starts = starts
-        self.paths = paths
-        self.ends = ends
+        self.starts_prev = starts_prev
+        self.starts_curr = starts_curr
+        self.paths_prev = paths_prev
+        self.paths_curr = paths_curr
+        self.ends_prev = ends_prev
+        self.ends_curr = ends_curr
         self.labels = labels
         self.transform = transform
 
     def __len__(self):
-        return len(self.starts)
+        return len(self.starts_prev)
 
     def __getitem__(self, index):
         item = {
             'id': self.ids[index],
-            'starts': self.starts[index],
-            'paths': self.paths[index],
-            'ends': self.ends[index],
+            'starts_prev': self.starts_prev[index],
+            'paths_prev': self.paths_prev[index],
+            'ends_prev': self.ends_prev[index],
+            'starts_curr': self.starts_curr[index],
+            'paths_curr': self.paths_curr[index],
+            'ends_curr': self.ends_curr[index],
             'label': self.labels[index]
         }
         if self.transform:
@@ -47,7 +55,8 @@ class CodeData(object):
         self.id = None
         self.label = None
         self.normalized_label = None
-        self.path_contexts = []
+        self.path_contexts_prev = []
+        self.path_contexts_curr = []
         self.source = None
         self.aliases = {}
 
@@ -151,7 +160,8 @@ class DatasetReader(object):
         for split in ["train", "dev", "test"]:
             with open(corpus_path+split+".txt", mode="r", encoding="utf-8") as f:
                 code_data = None
-                path_contexts_append = None
+                prev_path_contexts_append = None
+                curr_path_contexts_append = None
                 parse_mode = 0
                 for line in f.readlines():
                     line = line.strip(' \r\n\t')
@@ -164,7 +174,8 @@ class DatasetReader(object):
 
                     if code_data is None:
                         code_data = CodeData()
-                        path_contexts_append = code_data.path_contexts.append
+                        prev_path_contexts_append = code_data.path_contexts_prev.append
+                        curr_path_contexts_append = code_data.path_contexts_curr.append
 
                     if line.startswith('#'):
                         code_data.id = int(line[1:])
@@ -179,15 +190,21 @@ class DatasetReader(object):
                             normalized_lower_label, subtokens=subtokens)
                     elif line.startswith('class:'):
                         code_data.source = line[6:]
-                    elif line.startswith('paths:'):
-                        parse_mode = 1
+                    elif line.startswith('prev_paths:'):
+                        parse_mode = 10
+                    elif line.startswith('curr_paths:'):
+                        parse_mode = 11
                     elif line.startswith('vars:'):
                         parse_mode = 2
                     elif line.startswith('doc:'):
                         doc = line[4:]
-                    elif parse_mode == 1:  # paths
+                    elif parse_mode == 10:  # prev_paths
                         path_context = line.split('\t')
-                        path_contexts_append((int(path_context[0]), int(
+                        prev_path_contexts_append((int(path_context[0]), int(
+                            path_context[1]), int(path_context[2])))
+                    elif parse_mode == 11:  # curr_paths
+                        path_context = line.split('\t')
+                        curr_path_contexts_append((int(path_context[0]), int(
                             path_context[1]), int(path_context[2])))
                     elif parse_mode == 2:  # vars
                         alias = line.split('\t')
@@ -222,20 +239,40 @@ class DatasetBuilder(object):
 
     def refresh_dataset(self):
         """refresh training dataset (shuffling path contexts and picking up items (#items <= max_path_length)"""
-        inputs_id, inputs_starts, inputs_paths, inputs_ends, inputs_label = self.build_data(
+        (inputs_id, inputs_starts_prev, inputs_starts_curr,
+                inputs_paths_prev, inputs_paths_curr,
+                inputs_ends_prev, inputs_ends_curr,
+        inputs_label) = self.build_data(
             self.reader, self.train_items, self.option.max_path_length)
         self.train_dataset = CodeDataset(
-            inputs_id, inputs_starts, inputs_paths, inputs_ends, inputs_label)
+            inputs_id, inputs_starts_prev, inputs_starts_curr,
+            inputs_paths_prev, inputs_paths_curr,
+            inputs_ends_prev, inputs_ends_curr, inputs_label)
 
-        inputs_id, inputs_starts, inputs_paths, inputs_ends, inputs_label = self.build_data(
+        (inputs_id, inputs_starts_prev, inputs_starts_curr,
+                inputs_paths_prev, inputs_paths_curr,
+                inputs_ends_prev, inputs_ends_curr,
+        inputs_label) = self.build_data(
             self.reader, self.dev_items, self.option.max_path_length)
         self.dev_dataset = CodeDataset(
-            inputs_id, inputs_starts, inputs_paths, inputs_ends, inputs_label)
+            inputs_id, inputs_starts_prev, inputs_starts_curr,
+            inputs_paths_prev, inputs_paths_curr,
+            inputs_ends_prev, inputs_ends_curr, inputs_label)
 
-        inputs_id, inputs_starts, inputs_paths, inputs_ends, inputs_label = self.build_data(
+        (inputs_id, inputs_starts_prev, inputs_starts_curr,
+                inputs_paths_prev, inputs_paths_curr,
+                inputs_ends_prev, inputs_ends_curr,
+        inputs_label) = self.build_data(
             self.reader, self.test_items, self.option.max_path_length)
         self.test_dataset = CodeDataset(
-            inputs_id, inputs_starts, inputs_paths, inputs_ends, inputs_label)
+            inputs_id, inputs_starts_prev, inputs_starts_curr,
+            inputs_paths_prev, inputs_paths_curr,
+            inputs_ends_prev, inputs_ends_curr, inputs_label)
+
+        # inputs_id, inputs_starts, inputs_paths_prev, inputs_paths_curr, inputs_ends, inputs_label = self.build_data(
+        #     self.reader, self.test_items, self.option.max_path_length)
+        # self.test_dataset = CodeDataset(
+        #     inputs_id, inputs_starts, inputs_paths_prev, inputs_paths_curr, inputs_ends, inputs_label)
 
 
     # def refresh_test_dataset(self):
@@ -247,35 +284,61 @@ class DatasetBuilder(object):
 
     def build_data(self, reader, items, max_path_length):
         inputs_id = []
-        inputs_starts = []
-        inputs_paths = []
-        inputs_ends = []
+        inputs_starts_prev = []
+        inputs_starts_curr = []
+        inputs_paths_prev = []
+        inputs_paths_curr = []
+        inputs_ends_prev = []
+        inputs_ends_curr = []
         inputs_label = []
         label_vocab_stoi = reader.label_vocab.stoi
         for item in items:
             inputs_id.append(item.id)
-            label_index = label_vocab_stoi[item.normalized_label]
+            try:
+                label_index = label_vocab_stoi[item.normalized_label]
+            except KeyError:
+                c += 1
             inputs_label.append(label_index)
-            starts = []
-            paths = []
-            ends = []
+            starts_prev = []
+            starts_curr = []
+            paths_prev = []
+            paths_curr = []
+            ends_prev = []
+            ends_curr = []
 
             # random.shuffle(item.path_contexts)
-            for start, path, end in item.path_contexts[:max_path_length]:
-                starts.append(start)
-                paths.append(path)
-                ends.append(end)
-            starts = self.pad_inputs(starts, max_path_length)
-            paths = self.pad_inputs(paths, max_path_length)
-            ends = self.pad_inputs(ends, max_path_length)
-            inputs_starts.append(starts)
-            inputs_paths.append(paths)
-            inputs_ends.append(ends)
-        inputs_starts = torch.tensor(inputs_starts, dtype=torch.long)
-        inputs_paths = torch.tensor(inputs_paths, dtype=torch.long)
-        inputs_ends = torch.tensor(inputs_ends, dtype=torch.long)
+            for start, path, end in item.path_contexts_prev[:max_path_length]:
+                starts_prev.append(start)
+                paths_prev.append(path)
+                ends_prev.append(end)
+            for start, path, end in item.path_contexts_curr[:max_path_length]:
+                starts_curr.append(start)
+                paths_curr.append(path)
+                ends_curr.append(end)
+            starts_prev = self.pad_inputs(starts_prev, max_path_length)
+            starts_curr = self.pad_inputs(starts_curr, max_path_length)
+            paths_prev = self.pad_inputs(paths_prev, max_path_length)
+            paths_curr = self.pad_inputs(paths_curr, max_path_length)
+            ends_prev = self.pad_inputs(ends_prev, max_path_length)
+            ends_curr = self.pad_inputs(ends_curr, max_path_length)
+            inputs_starts_prev.append(starts_prev)
+            inputs_starts_curr.append(starts_curr)
+            inputs_paths_prev.append(paths_prev)
+            inputs_paths_curr.append(paths_curr)
+            inputs_ends_prev.append(ends_prev)
+            inputs_ends_curr.append(ends_curr)
+        inputs_starts_prev = torch.tensor(inputs_starts_prev, dtype=torch.long)
+        inputs_starts_curr = torch.tensor(inputs_starts_curr, dtype=torch.long)
+        inputs_paths_prev = torch.tensor(inputs_paths_prev, dtype=torch.long)
+        inputs_paths_curr = torch.tensor(inputs_paths_curr, dtype=torch.long)
+        inputs_ends_prev = torch.tensor(inputs_ends_prev, dtype=torch.long)
+        inputs_ends_curr = torch.tensor(inputs_ends_curr, dtype=torch.long)
         inputs_label = torch.tensor(inputs_label, dtype=torch.long)
-        return inputs_id, inputs_starts, inputs_paths, inputs_ends, inputs_label
+        return (inputs_id,
+                inputs_starts_prev, inputs_starts_curr,
+                inputs_paths_prev, inputs_paths_curr,
+                inputs_ends_prev, inputs_ends_curr,
+                inputs_label)
 
     def pad_inputs(self, data, length, pad_value=0):
         """pad values"""

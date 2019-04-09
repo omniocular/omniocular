@@ -10,8 +10,8 @@ from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_sc
 from torch.utils.data import DataLoader
 
 from datasets.vulas_diff_paths import DatasetReader, DatasetBuilder
-from models.code2vec.args import get_args
-from models.code2vec.model import Code2Vec
+from embeddings.code2vec.args import get_args
+from embeddings.code2vec.model import Code2Vec
 
 # Adapted from https://github.com/sonoisa/code2vec
 
@@ -87,6 +87,22 @@ def train():
     _train(model, optimizer, criterion, option, reader, builder, None)
 
 
+def apply_batch(model, sample_batched, device):
+    starts_prev = sample_batched['starts_prev'].to(device)
+    paths_prev = sample_batched['paths_prev'].to(device)
+    ends_prev = sample_batched['ends_prev'].to(device)
+    starts_curr = sample_batched['starts_curr'].to(device)
+    paths_curr = sample_batched['paths_curr'].to(device)
+    ends_curr = sample_batched['ends_curr'].to(device)
+    label = sample_batched['label'].to(device)
+
+    preds, codevec, _ = model.forward(
+        starts_prev, paths_prev, ends_prev,
+        starts_curr, paths_curr, ends_curr)
+
+    return preds, label, codevec
+
+
 def _train(model, optimizer, criterion, option, reader, builder, trial):
     """train the model"""
 
@@ -112,13 +128,9 @@ def _train(model, optimizer, criterion, option, reader, builder, trial):
 
             model.train()
             for i_batch, sample_batched in enumerate(train_data_loader):
-                starts = sample_batched['starts'].to(option.device)
-                paths = sample_batched['paths'].to(option.device)
-                ends = sample_batched['ends'].to(option.device)
-                label = sample_batched['label'].to(device)
 
                 optimizer.zero_grad()
-                preds, _, _ = model.forward(starts, paths, ends)
+                preds, label, _ = apply_batch(model, sample_batched, option.device)
                 loss = calculate_loss(preds, label, criterion, option)
                 loss.backward()
                 optimizer.step()
@@ -239,13 +251,9 @@ def test(model, data_loader, criterion, option, label_vocab):
         actual_labels = []
 
         for i_batch, sample_batched in enumerate(data_loader):
-            starts = sample_batched['starts'].to(option.device)
-            paths = sample_batched['paths'].to(option.device)
-            ends = sample_batched['ends'].to(option.device)
-            label = sample_batched['label'].to(device)
+            preds, label, _ = apply_batch(model, sample_batched, option.device)
             expected_labels.extend(label)
 
-            preds, _, _ = model.forward(starts, paths, ends)
             loss = calculate_loss(preds, label, criterion, option)
             test_loss += loss.item()
             _, preds_label = torch.max(preds, dim=1)
@@ -331,14 +339,13 @@ def subtoken_match(expected_labels, actual_labels, label_vocab):
 
 def print_sample(reader, model, data_loader, option):
     """print one data that leads correct prediction with the trained model"""
+    #depricated
     model.eval()
     with torch.no_grad():
         for i_batch, sample_batched in enumerate(data_loader):
-            starts = sample_batched['starts'].to(option.device)
-            paths = sample_batched['paths'].to(option.device)
-            ends = sample_batched['ends'].to(option.device)
-            label = sample_batched['label'].to(option.device)
+            preds, label, code_vector = apply_batch(model, sample_batched, option.device)
 
+            # the next line broken!!!!!!!!!!!!!!!!!!!!
             preds, code_vector, attn = model.forward(starts, paths, ends)
             _, preds_label = torch.max(preds, dim=1)
 
@@ -378,12 +385,8 @@ def write_code_vectors(reader, model, data_loader, option, vector_file, mode, te
         with open(vector_file, mode) as fv:
             for i_batch, sample_batched in enumerate(data_loader):
                 id = sample_batched['id']
-                starts = sample_batched['starts'].to(option.device)
-                paths = sample_batched['paths'].to(option.device)
-                ends = sample_batched['ends'].to(option.device)
-                label = sample_batched['label'].to(option.device)
+                pred, label, code_vector = apply_batch(model, sample_batched, option.device)
 
-                preds, code_vector, _ = model.forward(starts, paths, ends)
                 preds_prob, preds_label = torch.max(preds, dim=1)
 
                 for i in range(len(starts)):
