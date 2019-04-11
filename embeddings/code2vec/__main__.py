@@ -47,8 +47,8 @@ class Option(object):
     def __init__(self, reader):
         self.max_path_length = args.max_path_length
 
-        self.terminal_count = reader.terminal_vocab.duplicate_len()
-        self.path_count = reader.path_vocab.duplicate_len()
+        self.terminal_count = reader.terminal_vocab.duplicate_len()+1
+        self.path_count = reader.path_vocab.duplicate_len()+1
         self.label_count = reader.label_vocab.len()
 
         self.terminal_embed_size = args.terminal_embed_size
@@ -66,7 +66,9 @@ def train():
     torch.manual_seed(args.random_seed)
 
     reader = DatasetReader(
-        args.corpus_path, args.path_idx_path, args.terminal_idx_path)
+        args.corpus_path,
+        args.corpus_path+"paths.txt",
+        args.corpus_path+"tokens.txt")
     option = Option(reader)
 
     builder = DatasetBuilder(reader, option)
@@ -423,7 +425,9 @@ def find_optimal_hyperparams():
     torch.manual_seed(args.random_seed)
 
     reader = DatasetReader(
-        args.corpus_path, args.path_idx_path, args.terminal_idx_path)
+        args.corpus_path,
+        args.corpus_path+"paths.txt",
+        args.corpus_path+"tokens.txt")
     option = Option(reader)
 
     builder = DatasetBuilder(reader, option)
