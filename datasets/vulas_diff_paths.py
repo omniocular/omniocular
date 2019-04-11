@@ -294,10 +294,7 @@ class DatasetBuilder(object):
         label_vocab_stoi = reader.label_vocab.stoi
         for item in items:
             inputs_id.append(item.id)
-            try:
-                label_index = label_vocab_stoi[item.normalized_label]
-            except KeyError:
-                c += 1
+            label_index = label_vocab_stoi[item.normalized_label]
             inputs_label.append(label_index)
             starts_prev = []
             starts_curr = []

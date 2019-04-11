@@ -47,8 +47,8 @@ class Option(object):
     def __init__(self, reader):
         self.max_path_length = args.max_path_length
 
-        self.terminal_count = reader.terminal_vocab.duplicate_len()
-        self.path_count = reader.path_vocab.duplicate_len()
+        self.terminal_count = reader.terminal_vocab.duplicate_len()+1
+        self.path_count = reader.path_vocab.duplicate_len()+1
         self.label_count = reader.label_vocab.len()
 
         self.terminal_embed_size = args.terminal_embed_size
@@ -66,7 +66,9 @@ def train():
     torch.manual_seed(args.random_seed)
 
     reader = DatasetReader(
-        args.corpus_path, args.path_idx_path, args.terminal_idx_path)
+        args.corpus_path,
+        args.corpus_path+"paths.txt",
+        args.corpus_path+"tokens.txt")
     option = Option(reader)
 
     builder = DatasetBuilder(reader, option)
@@ -111,6 +113,8 @@ def _train(model, optimizer, criterion, option, reader, builder, trial):
     last_loss = None
     last_accuracy = None
     bad_count = 0
+    best_dev_f1 = 0
+    best_test_f1 = 0
 
     if args.env == "tensorboard":
         summary_writer = SummaryWriter()
@@ -149,6 +153,7 @@ def _train(model, optimizer, criterion, option, reader, builder, trial):
             test_loss, test_accuracy, test_precision, test_recall, test_f1 = test(
                 model, test_data_loader, criterion, option, reader.label_vocab)
 
+            print()
             print("epoch {0}".format(epoch))
             print('{{"metric": "train_loss", "value": {0}}}'.format(train_loss))
             print('{{"metric": "dev_loss", "value": {0}}}'.format(dev_loss))
@@ -163,6 +168,13 @@ def _train(model, optimizer, criterion, option, reader, builder, trial):
             print('{{"metric": "precision", "value": {0}}}'.format(test_precision))
             print('{{"metric": "recall", "value": {0}}}'.format(test_recall))
             print('{{"metric": "f1", "value": {0}}}'.format(test_f1))
+
+            if dev_f1>best_dev_f1:
+                best_dev_f1 = dev_f1
+                print("Best test f1 update from {} to {}".format(
+                    best_test_f1, test_f1))
+                best_test_f1 = test_f1
+
             if args.env == "tensorboard":
                 summary_writer.add_scalar(
                     'metric/train_loss', train_loss, epoch)
@@ -413,7 +425,9 @@ def find_optimal_hyperparams():
     torch.manual_seed(args.random_seed)
 
     reader = DatasetReader(
-        args.corpus_path, args.path_idx_path, args.terminal_idx_path)
+        args.corpus_path,
+        args.corpus_path+"paths.txt",
+        args.corpus_path+"tokens.txt")
     option = Option(reader)
 
     builder = DatasetBuilder(reader, option)

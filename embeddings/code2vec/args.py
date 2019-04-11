@@ -11,14 +11,15 @@ def get_args():
                         help="random_seed")
 
     parser.add_argument('--corpus_path', type=str,
-                        default="../omniocular-data/datasets/vulas_diff_paths/",
+                        default="../omniocular-data/datasets/vulas_diff_paths/fine_split_deduplicate/",
+                        #default="../omniocular-data/datasets/vulas_diff_paths/coarse_split_deduplicate/",
                         help="corpus_path")
-    parser.add_argument('--path_idx_path', type=str,
-                        default="../omniocular-data/datasets/vulas_diff_paths/paths.txt",
-                        help="path_idx_path")
-    parser.add_argument('--terminal_idx_path', type=str,
-                        default="../omniocular-data/datasets/vulas_diff_paths/tokens.txt",
-                        help="terminal_idx_path")
+    # parser.add_argument('--path_idx_path', type=str,
+    #                     default="../omniocular-data/datasets/vulas_diff_paths/paths.txt",
+    #                     help="path_idx_path")
+    # parser.add_argument('--terminal_idx_path', type=str,
+    #                     default="../omniocular-data/datasets/vulas_diff_paths/tokens.txt",
+    #                     help="terminal_idx_path")
 
     parser.add_argument('--batch_size', type=int, default=16,
                         help="batch_size")
