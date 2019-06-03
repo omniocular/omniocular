@@ -29,9 +29,9 @@ class VulasPairedToken(TabularDataset):
         return len(ex.code1) + len(ex.code2)
 
     @classmethod
-    def splits(cls, path, train=os.path.join('vulas_paired_token', 'train_aug.tsv'),
+    def splits(cls, path, train=os.path.join('vulas_paired_token', 'train.tsv'),
                validation=os.path.join('vulas_paired_token', 'dev.tsv'),
-               test=os.path.join('vulas_paired_token', 'test.tsv'), **kwargs):
+               test=os.path.join('vulas_paired_token', 'test_2x.tsv'), **kwargs):
         return super(VulasPairedToken, cls).splits(
             path, train=train, validation=validation, test=test, format='tsv',
             fields=[('repo', cls.REPO_FIELD), ('sha', cls.SHA_FIELD),

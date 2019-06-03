@@ -30,7 +30,7 @@ class VulasDiffToken(TabularDataset):
     @classmethod
     def splits(cls, path, train=os.path.join('vulas_diff_token', 'train.tsv'),
                validation=os.path.join('vulas_diff_token', 'dev.tsv'),
-               test=os.path.join('vulas_diff_token', 'test.tsv'), **kwargs):
+               test=os.path.join('vulas_diff_token', 'test_2x.tsv'), **kwargs):
         return super(VulasDiffToken, cls).splits(
             path, train=train, validation=validation, test=test, format='tsv',
             fields=[('repo', cls.REPO_FIELD), ('sha', cls.SHA_FIELD), ('code', cls.CODE_FIELD), ('label', cls.LABEL_FIELD)]
