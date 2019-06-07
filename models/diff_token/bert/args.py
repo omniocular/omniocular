@@ -1,12 +1,12 @@
 import os
 
-import models.args
+import models.diff_token.args
 
 
 def get_args():
-    parser = models.args.get_args()
+    parser = models.diff_token.args.get_args()
 
-    parser.add_argument('--model', default=None, type=str, required=True)
+    parser.add_argument('--model', default='bert-base-uncased', type=str, required=False)
     parser.add_argument('--dataset', type=str, default='VulasDiffToken', choices=['VulasDiffToken'])
     parser.add_argument('--save-path', type=str, default=os.path.join('model_checkpoints', 'bert'))
     parser.add_argument('--cache-dir', default='cache', type=str)

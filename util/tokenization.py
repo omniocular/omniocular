@@ -20,7 +20,7 @@ import os
 import unicodedata
 from io import open
 
-from utils.io import cached_path
+from util.io import cached_path
 
 logger = logging.getLogger(__name__)
 
