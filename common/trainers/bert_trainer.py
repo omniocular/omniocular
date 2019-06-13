@@ -25,7 +25,7 @@ class BertTrainer(object):
         self.tokenizer = BertTokenizer.from_pretrained(args.model, is_lowercase=args.is_lowercase)
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        self.writer = SummaryWriter(log_dir="tensorboard_logs/" + timestamp)
+        self.writer = SummaryWriter(logdir="tensorboard_logs/" + timestamp)
         self.snapshot_path = os.path.join(self.args.save_path, self.processor.NAME, '%s.pt' % timestamp)
 
         self.num_train_optimization_steps = int(
