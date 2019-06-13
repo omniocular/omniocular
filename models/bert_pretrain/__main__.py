@@ -542,13 +542,13 @@ def main():
                     global_step += 1
                     print("{}\t{}\t{}".format(epoch, step, loss.cpu().item()), file=loss_log)
 
-                if (step+1) % (train_size//5) == 0:
+                if (step+1) % (train_size//10) == 0:
                     # Save a trained model
                     # logger.info("** ** * Saving fine - tuned model ** ** * ")
                     model_to_save = model.module if hasattr(model, 'module') \
                         else model  # Only save the model it-self
                     output_model_file = os.path.join(
-                        args.output_dir, "e{}-s{}.bin".format(epoch, step//(train_size//5)))
+                        args.output_dir, "e{}-s{}.bin".format(epoch, step//(train_size//10)))
                     if args.do_train:
                         torch.save(model_to_save.state_dict(), output_model_file)
         loss_log.close()

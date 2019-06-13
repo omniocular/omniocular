@@ -29,7 +29,7 @@ def get_args():
                         action='store_true',
                         help="Whether to run training.")
     parser.add_argument("--train_batch_size",
-                        default=512,
+                        default=256,
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--learning_rate",
