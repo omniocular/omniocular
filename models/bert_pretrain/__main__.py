@@ -509,10 +509,12 @@ def main():
             train_sampler = DistributedSampler(train_dataset)
         train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
 
+        loss_log = open("bert_pretrain_output/loss_log", 'w')
         model.train()
-        for _ in trange(int(args.num_train_epochs), desc="Epoch"):
+        for epoch in trange(int(args.num_train_epochs), desc="Epoch"):
             tr_loss = 0
             nb_tr_examples, nb_tr_steps = 0, 0
+            train_size = len(train_dataloader)
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, input_mask, segment_ids, lm_label_ids, is_next = batch
@@ -538,13 +540,20 @@ def main():
                     optimizer.step()
                     optimizer.zero_grad()
                     global_step += 1
+                    print("{}\t{}\t{}".format(epoch, step, loss.cpu().item()), file=loss_log)
 
-        # Save a trained model
-        logger.info("** ** * Saving fine - tuned model ** ** * ")
-        model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
-        output_model_file = os.path.join(args.output_dir, "pytorch_model.bin")
-        if args.do_train:
-            torch.save(model_to_save.state_dict(), output_model_file)
+                if (step+1) % (train_size//5) == 0:
+                    # Save a trained model
+                    # logger.info("** ** * Saving fine - tuned model ** ** * ")
+                    model_to_save = model.module if hasattr(model, 'module') \
+                        else model  # Only save the model it-self
+                    output_model_file = os.path.join(
+                        args.output_dir, "e{}-s{}.bin".format(epoch, step//(train_size//5)))
+                    if args.do_train:
+                        torch.save(model_to_save.state_dict(), output_model_file)
+        loss_log.close()
+
+        
 
 
 def _truncate_seq_pair(tokens_a, tokens_b, max_length):
