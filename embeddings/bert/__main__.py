@@ -29,9 +29,9 @@ from torch.utils.data import DataLoader, Dataset, RandomSampler
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 
-from models.pytorch_pretrained_bert.modeling import BertForPreTraining
-from models.pytorch_pretrained_bert.tokenization import BertTokenizer
-from models.pytorch_pretrained_bert.optimization import BertAdam, WarmupLinearSchedule
+from models.diff_token.bert.model import BertForPreTraining
+from util.tokenization import BertTokenizer
+from util.optimization import BertAdam, WarmupLinearSchedule
 
 from .args import get_args
 
@@ -69,24 +69,20 @@ class BERTDataset(Dataset):
             with open(corpus_path, "r", encoding=encoding) as f:
                 for line in tqdm(f, desc="Loading Dataset", total=corpus_lines):
                     line = line.strip()
-                    if line == "":
+                    if line == "}":
                         self.all_docs.append(doc)
                         doc = []
-                        #remove last added sample because there won't be a subsequent line anymore in the doc
-                        self.sample_to_doc.pop()
+                        # # Remove last added sample as it doesn't have a subsequent line
+                        # self.sample_to_doc.pop()
                     else:
-                        #store as one sample
                         sample = {"doc_id": len(self.all_docs),
                                   "line": len(doc)}
                         self.sample_to_doc.append(sample)
                         doc.append(line)
                         self.corpus_lines = self.corpus_lines + 1
 
-            # if last row in file is not empty
-            if self.all_docs[-1] != doc:
-                self.all_docs.append(doc)
-                self.sample_to_doc.pop()
-
+            self.all_docs.append(doc)
+            self.sample_to_doc.pop()
             self.num_docs = len(self.all_docs)
 
         # load samples later lazily from disk
@@ -434,7 +430,7 @@ def main():
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
-    tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=args.do_lower_case)
+    tokenizer = BertTokenizer.from_pretrained(args.bert_model, is_lowercase=args.do_lower_case)
 
     #train_examples = None
     num_train_optimization_steps = None

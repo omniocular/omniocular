@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """PyTorch optimization for BERT model."""
-
+import abc
 import math
 import torch
 from torch.optim import Optimizer
@@ -23,10 +23,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def warmup_cosine(x, warmup=0.002):
     if x < warmup:
         return x/warmup
     return 0.5 * (1.0 + torch.cos(math.pi * x))
+
 
 def warmup_constant(x, warmup=0.002):
     """ Linearly increases learning rate over `warmup`*`t_total` (as provided to BertAdam) training steps.
@@ -34,6 +36,7 @@ def warmup_constant(x, warmup=0.002):
     if x < warmup:
         return x/warmup
     return 1.0
+
 
 def warmup_linear(x, warmup=0.002):
     """ Specifies a triangular learning rate schedule where peak is reached at `warmup`*`t_total`-th (as provided to BertAdam) training step.
@@ -47,6 +50,64 @@ SCHEDULES = {
     'warmup_constant': warmup_constant,
     'warmup_linear':   warmup_linear,
 }
+
+
+class _LRSchedule(abc.ABC):
+    """ Parent of all LRSchedules here. """
+    warn_t_total = False        # is set to True for schedules where progressing beyond t_total steps doesn't make sense
+    def __init__(self, warmup=0.002, t_total=-1, **kw):
+        """
+        :param warmup:  what fraction of t_total steps will be used for linear warmup
+        :param t_total: how many training steps (updates) are planned
+        :param kw:
+        """
+        super(_LRSchedule, self).__init__(**kw)
+        if t_total < 0:
+            logger.warning("t_total value of {} results in schedule not being applied".format(t_total))
+        if not 0.0 <= warmup < 1.0 and not warmup == -1:
+            raise ValueError("Invalid warmup: {} - should be in [0.0, 1.0[ or -1".format(warmup))
+        warmup = max(warmup, 0.)
+        self.warmup, self.t_total = float(warmup), float(t_total)
+        self.warned_for_t_total_at_progress = -1
+
+    def get_lr(self, step, nowarn=False):
+        """
+        :param step:    which of t_total steps we're on
+        :param nowarn:  set to True to suppress warning regarding training beyond specified 't_total' steps
+        :return:        learning rate multiplier for current update
+        """
+        if self.t_total < 0:
+            return 1.
+        progress = float(step) / self.t_total
+        ret = self.get_lr_(progress)
+        # warning for exceeding t_total (only active with warmup_linear
+        if not nowarn and self.warn_t_total and progress > 1. and progress > self.warned_for_t_total_at_progress:
+            logger.warning(
+                "Training beyond specified 't_total'. Learning rate multiplier set to {}. Please set 't_total' of {} correctly."
+                    .format(ret, self.__class__.__name__))
+            self.warned_for_t_total_at_progress = progress
+        # end warning
+        return ret
+
+    @abc.abstractmethod
+    def get_lr_(self, progress):
+        """
+        :param progress:    value between 0 and 1 (unless going beyond t_total steps) specifying training progress
+        :return:            learning rate multiplier for current update
+        """
+        return 1.
+
+
+class WarmupLinearSchedule(_LRSchedule):
+    """
+    Linearly increases learning rate from 0 to 1 over `warmup` fraction of training steps.
+    Linearly decreases learning rate from 1. to 0. over remaining `1 - warmup` steps.
+    """
+    warn_t_total = True
+    def get_lr_(self, progress):
+        if progress < self.warmup:
+            return progress / self.warmup
+        return max((progress - 1.) / (self.warmup - 1.), 0.)
 
 
 class BertAdam(Optimizer):
