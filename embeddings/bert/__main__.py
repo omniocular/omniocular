@@ -505,7 +505,7 @@ def main():
             train_sampler = DistributedSampler(train_dataset)
         train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
 
-        loss_log = open("bert_pretrain_output/loss_log", 'w')
+        loss_log = open(args.log_dir+"/loss_log", 'w')
         model.train()
         for epoch in trange(int(args.num_train_epochs), desc="Epoch"):
             tr_loss = 0
@@ -536,6 +536,8 @@ def main():
                     optimizer.step()
                     optimizer.zero_grad()
                     global_step += 1
+
+                if step%args.loss_log_steps == 0:
                     print("{}\t{}\t{}".format(epoch, step, loss.cpu().item()), file=loss_log)
 
                 if (step+1) % (train_size//10) == 0:
