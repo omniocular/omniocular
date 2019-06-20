@@ -17,6 +17,11 @@ def get_args():
                         type=str,
                         required=True,
                         help="The output directory where the model checkpoints will be written.")
+    parser.add_argument("--log_dir",
+                        default=None,
+                        type=str,
+                        required=True,
+                        help="The output directory where the log file of training loss will be written.")
 
     ## Other parameters
     parser.add_argument("--max_seq_length",
@@ -29,7 +34,7 @@ def get_args():
                         action='store_true',
                         help="Whether to run training.")
     parser.add_argument("--train_batch_size",
-                        default=256,
+                        default=128,
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--learning_rate",
@@ -66,6 +71,10 @@ def get_args():
                         type=int,
                         default=1,
                         help="Number of updates steps to accumualte before performing a backward/update pass.")
+    parser.add_argument('--loss_log_steps',
+                        type=int,
+                        default=1000,
+                        help="Number of updates steps before printing the loss to log.")
     parser.add_argument('--fp16',
                         action='store_true',
                         help="Whether to use 16-bit float precision instead of 32-bit")
