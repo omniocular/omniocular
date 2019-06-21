@@ -16,6 +16,8 @@ def get_args():
                         help="proportion of training to perform linear learning rate warmup for")
     parser.add_argument('--gradient-accumulation-steps', type=int, default=1,
                         help="number of updates steps to accumulate before performing a backward pass")
+    parser.add_argument('--print-loss-steps', type=int, default=100,
+                        help="number of updates before printing training pass to log")
 
     parser.add_argument("--no-cuda", action='store_true')
     parser.add_argument('--fp16', action='store_true', help="use 16-bit float precision instead of 32-bit")

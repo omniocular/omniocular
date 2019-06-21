@@ -525,6 +525,8 @@ if __name__ == "__main__":
                 optimizer.step()
                 optimizer.zero_grad()
                 global_step += 1
+
+            if step % args.print_loss_steps == 0:
                 print("{}\t{}\t{}".format(epoch, step, loss.cpu().item()), file=loss_log)
 
             if (step + 1) % (train_size // 10) == 0:
