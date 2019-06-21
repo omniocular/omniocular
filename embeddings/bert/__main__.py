@@ -13,12 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""BERT finetuning runner."""
 
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import argparse
-import logging
 import os
 import random
 from io import open
@@ -26,19 +21,12 @@ from io import open
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset, RandomSampler
-from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 
 from models.diff_token.bert.model import BertForPreTraining
-from util.tokenization import BertTokenizer
 from util.optimization import BertAdam, WarmupLinearSchedule
-
-from .args import get_args
-
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
-                    datefmt='%m/%d/%Y %H:%M:%S',
-                    level=logging.INFO)
-logger = logging.getLogger(__name__)
+from util.tokenization import BertTokenizer
+from embeddings.bert.args import get_args
 
 
 class BERTDataset(Dataset):
@@ -59,7 +47,7 @@ class BERTDataset(Dataset):
         # for loading samples in memory
         self.current_random_doc = 0
         self.num_docs = 0
-        self.sample_to_doc = [] # map sample index to doc and line
+        self.sample_to_doc = []  # map sample index to doc and line
 
         # load samples into memory
         if on_memory:
@@ -69,7 +57,7 @@ class BERTDataset(Dataset):
             with open(corpus_path, "r", encoding=encoding) as f:
                 for line in tqdm(f, desc="Loading Dataset", total=corpus_lines):
                     line = line.strip()
-                    if line == "}":
+                    if line == '':
                         self.all_docs.append(doc)
                         doc = []
                         # # Remove last added sample as it doesn't have a subsequent line
@@ -113,8 +101,7 @@ class BERTDataset(Dataset):
         if not self.on_memory:
             # after one epoch we start again from beginning of file
             if cur_id != 0 and (cur_id % len(self) == 0):
-                self.file.close()
-                self.file = open(self.corpus_path, "r", encoding=self.encoding)
+                self.file.seek(0)
 
         t1, t2, is_next_label = self.random_sent(item)
 
@@ -206,10 +193,11 @@ class BERTDataset(Dataset):
                 line = rand_doc[random.randrange(len(rand_doc))]
             else:
                 rand_index = random.randint(1, self.corpus_lines if self.corpus_lines < 1000 else 1000)
-                #pick random line
+                # Pick a random line
                 for _ in range(rand_index):
                     line = self.get_next_line()
-            #check if our picked random line is really from another doc like we want it to be
+
+            # Check if random line is from another document
             if self.current_random_doc != self.current_doc:
                 break
         return line
@@ -218,14 +206,15 @@ class BERTDataset(Dataset):
         """ Gets next line of random_file and starts over when reaching end of file"""
         try:
             line = next(self.random_file).strip()
-            #keep track of which document we are currently looking at to later avoid having the same doc as t1
+
             if line == "":
                 self.current_random_doc = self.current_random_doc + 1
                 line = next(self.random_file).strip()
+
         except StopIteration:
-            self.random_file.close()
-            self.random_file = open(self.corpus_path, "r", encoding=self.encoding)
+            self.random_file.seek(0)
             line = next(self.random_file).strip()
+
         return line
 
 
@@ -376,16 +365,16 @@ def convert_example_to_features(example, max_seq_length, tokenizer):
     assert len(lm_label_ids) == max_seq_length
 
     if example.guid < 5:
-        logger.info("*** Example ***")
-        logger.info("guid: %s" % (example.guid))
-        logger.info("tokens: %s" % " ".join(
+        print("*** Example ***")
+        print("guid: %s" % (example.guid))
+        print("tokens: %s" % " ".join(
                 [str(x) for x in tokens]))
-        logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
-        logger.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
-        logger.info(
+        print("input_ids: %s" % " ".join([str(x) for x in input_ids]))
+        print("input_mask: %s" % " ".join([str(x) for x in input_mask]))
+        print(
                 "segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
-        logger.info("LM label: %s " % (lm_label_ids))
-        logger.info("Is next sentence label: %s " % (example.is_next))
+        print("LM label: %s " % (lm_label_ids))
+        print("Is next sentence label: %s " % (example.is_next))
 
     features = InputFeatures(input_ids=input_ids,
                              input_mask=input_mask,
@@ -398,23 +387,16 @@ def convert_example_to_features(example, max_seq_length, tokenizer):
 def main():
     args = get_args()
 
-    if args.local_rank == -1 or args.no_cuda:
-        device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
-        n_gpu = torch.cuda.device_count()
-    else:
-        torch.cuda.set_device(args.local_rank)
-        device = torch.device("cuda", args.local_rank)
-        n_gpu = 1
-        # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
-        torch.distributed.init_process_group(backend='nccl')
-    logger.info("device: {} n_gpu: {}, distributed training: {}, 16-bits training: {}".format(
-        device, n_gpu, bool(args.local_rank != -1), args.fp16))
+    device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
+    n_gpu = torch.cuda.device_count()
+
+    print("Device: {} Num. of GPUs: {}, FP16: {}".format(device, n_gpu, args.fp16))
 
     if args.gradient_accumulation_steps < 1:
         raise ValueError("Invalid gradient_accumulation_steps parameter: {}, should be >= 1".format(
                             args.gradient_accumulation_steps))
 
-    args.train_batch_size = args.train_batch_size // args.gradient_accumulation_steps
+    args.batch_size = args.batch_size // args.gradient_accumulation_steps
 
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -422,134 +404,110 @@ def main():
     if n_gpu > 0:
         torch.cuda.manual_seed_all(args.seed)
 
-    if not args.do_train:
-        raise ValueError("Training is currently the only implemented execution option. Please set `do_train`.")
-
     if os.path.exists(args.output_dir) and os.listdir(args.output_dir):
         raise ValueError("Output directory ({}) already exists and is not empty.".format(args.output_dir))
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
-    tokenizer = BertTokenizer.from_pretrained(args.bert_model, is_lowercase=args.do_lower_case)
+    tokenizer = BertTokenizer.from_pretrained(args.model, is_lowercase=args.do_lower_case)
 
-    #train_examples = None
-    num_train_optimization_steps = None
-    if args.do_train:
-        print("Loading Train Dataset", args.train_corpus)
-        train_dataset = BERTDataset(args.train_corpus, tokenizer, seq_len=args.max_seq_length,
-                                    corpus_lines=None, on_memory=args.on_memory)
-        num_train_optimization_steps = int(
-            len(train_dataset) / args.train_batch_size / args.gradient_accumulation_steps) * args.num_train_epochs
-        if args.local_rank != -1:
-            num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
+    print("Loading Train Dataset", args.data_path)
+    train_dataset = BERTDataset(args.data_path, tokenizer, seq_len=args.max_seq_length,
+                                corpus_lines=None, on_memory=args.on_memory)
+    num_train_optimization_steps = int(
+        len(train_dataset) / args.batch_size / args.gradient_accumulation_steps) * args.epochs
 
     # Prepare model
-    model = BertForPreTraining.from_pretrained(args.bert_model)
+    model = BertForPreTraining.from_pretrained(args.model)
     if args.fp16:
         model.half()
     model.to(device)
-    if args.local_rank != -1:
-        try:
-            from apex.parallel import DistributedDataParallel as DDP
-        except ImportError:
-            raise ImportError("Please install apex from https://www.github.com/nvidia/apex to use distributed and fp16 training.")
-        model = DDP(model)
-    elif n_gpu > 1:
+    if n_gpu > 1:
         model = torch.nn.DataParallel(model)
 
     # Prepare optimizer
-    if args.do_train:
-        param_optimizer = list(model.named_parameters())
-        no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
-        optimizer_grouped_parameters = [
-            {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
-            {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
-            ]
+    param_optimizer = list(model.named_parameters())
+    no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+    optimizer_grouped_parameters = [
+        {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
+        {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+        ]
 
-        if args.fp16:
-            try:
-                from apex.optimizers import FP16_Optimizer
-                from apex.optimizers import FusedAdam
-            except ImportError:
-                raise ImportError("Please install apex from https://www.github.com/nvidia/apex to use distributed and fp16 training.")
+    if args.fp16:
+        try:
+            from apex.optimizers import FP16_Optimizer
+            from apex.optimizers import FusedAdam
+        except ImportError:
+            raise ImportError("Please install apex from https://www.github.com/nvidia/apex for FP16")
 
-            optimizer = FusedAdam(optimizer_grouped_parameters,
-                                  lr=args.learning_rate,
-                                  bias_correction=False,
-                                  max_grad_norm=1.0)
-            if args.loss_scale == 0:
-                optimizer = FP16_Optimizer(optimizer, dynamic_loss_scale=True)
-            else:
-                optimizer = FP16_Optimizer(optimizer, static_loss_scale=args.loss_scale)
-            warmup_linear = WarmupLinearSchedule(warmup=args.warmup_proportion,
-                                                 t_total=num_train_optimization_steps)
-
+        optimizer = FusedAdam(optimizer_grouped_parameters,
+                              lr=args.lr,
+                              bias_correction=False,
+                              max_grad_norm=1.0)
+        if args.loss_scale == 0:
+            optimizer = FP16_Optimizer(optimizer, dynamic_loss_scale=True)
         else:
-            optimizer = BertAdam(optimizer_grouped_parameters,
-                                 lr=args.learning_rate,
-                                 warmup=args.warmup_proportion,
-                                 t_total=num_train_optimization_steps)
+            optimizer = FP16_Optimizer(optimizer, static_loss_scale=args.loss_scale)
+        warmup_linear = WarmupLinearSchedule(warmup=args.warmup_proportion,
+                                             t_total=num_train_optimization_steps)
+
+    else:
+        optimizer = BertAdam(optimizer_grouped_parameters,
+                             lr=args.lr,
+                             warmup=args.warmup_proportion,
+                             t_total=num_train_optimization_steps)
 
     global_step = 0
-    if args.do_train:
-        logger.info("***** Running training *****")
-        logger.info("  Num examples = %d", len(train_dataset))
-        logger.info("  Batch size = %d", args.train_batch_size)
-        logger.info("  Num steps = %d", num_train_optimization_steps)
+    print("***** Running training *****")
+    print("  Num examples = %d", len(train_dataset))
+    print("  Batch size = %d", args.batch_size)
+    print("  Num steps = %d", num_train_optimization_steps)
 
-        if args.local_rank == -1:
-            train_sampler = RandomSampler(train_dataset)
-        else:
-            #TODO: check if this works with current data generator from disk that relies on next(file)
-            # (it doesn't return item back by index)
-            train_sampler = DistributedSampler(train_dataset)
-        train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
+    train_sampler = RandomSampler(train_dataset)
+    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.batch_size)
 
-        loss_log = open("bert_pretrain_output/loss_log", 'w')
-        model.train()
-        for epoch in trange(int(args.num_train_epochs), desc="Epoch"):
-            tr_loss = 0
-            nb_tr_examples, nb_tr_steps = 0, 0
-            train_size = len(train_dataloader)
-            for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
-                batch = tuple(t.to(device) for t in batch)
-                input_ids, input_mask, segment_ids, lm_label_ids, is_next = batch
-                loss = model(input_ids, segment_ids, input_mask, lm_label_ids, is_next)
-                if n_gpu > 1:
-                    loss = loss.mean() # mean() to average on multi-gpu.
-                if args.gradient_accumulation_steps > 1:
-                    loss = loss / args.gradient_accumulation_steps
+    loss_log = open("bert_pretrain_output/loss_log", 'w')
+    model.train()
+    for epoch in trange(int(args.epochs), desc="Epoch"):
+        tr_loss = 0
+        nb_tr_examples, nb_tr_steps = 0, 0
+        train_size = len(train_dataloader)
+        for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
+            batch = tuple(t.to(device) for t in batch)
+            input_ids, input_mask, segment_ids, lm_label_ids, is_next = batch
+            loss = model(input_ids, segment_ids, input_mask, lm_label_ids, is_next)
+            if n_gpu > 1:
+                loss = loss.mean() # mean() to average on multi-gpu.
+            if args.gradient_accumulation_steps > 1:
+                loss = loss / args.gradient_accumulation_steps
+            if args.fp16:
+                optimizer.backward(loss)
+            else:
+                loss.backward()
+            tr_loss += loss.item()
+            nb_tr_examples += input_ids.size(0)
+            nb_tr_steps += 1
+            if (step + 1) % args.gradient_accumulation_steps == 0:
                 if args.fp16:
-                    optimizer.backward(loss)
-                else:
-                    loss.backward()
-                tr_loss += loss.item()
-                nb_tr_examples += input_ids.size(0)
-                nb_tr_steps += 1
-                if (step + 1) % args.gradient_accumulation_steps == 0:
-                    if args.fp16:
-                        # modify learning rate with special warm up BERT uses
-                        # if args.fp16 is False, BertAdam is used that handles this automatically
-                        lr_this_step = args.learning_rate * warmup_linear.get_lr(global_step, args.warmup_proportion)
-                        for param_group in optimizer.param_groups:
-                            param_group['lr'] = lr_this_step
-                    optimizer.step()
-                    optimizer.zero_grad()
-                    global_step += 1
-                    print("{}\t{}\t{}".format(epoch, step, loss.cpu().item()), file=loss_log)
+                    # modify learning rate with special warm up BERT uses
+                    # if args.fp16 is False, BertAdam is used that handles this automatically
+                    lr_this_step = args.lr * warmup_linear.get_lr(global_step, args.warmup_proportion)
+                    for param_group in optimizer.param_groups:
+                        param_group['lr'] = lr_this_step
+                optimizer.step()
+                optimizer.zero_grad()
+                global_step += 1
+                print("{}\t{}\t{}".format(epoch, step, loss.cpu().item()), file=loss_log)
 
-                if (step+1) % (train_size//10) == 0:
-                    # Save a trained model
-                    # logger.info("** ** * Saving fine - tuned model ** ** * ")
-                    model_to_save = model.module if hasattr(model, 'module') \
-                        else model  # Only save the model it-self
-                    output_model_file = os.path.join(
-                        args.output_dir, "e{}-s{}.bin".format(epoch, step//(train_size//10)))
-                    if args.do_train:
-                        torch.save(model_to_save.state_dict(), output_model_file)
-        loss_log.close()
-
-        
+            if (step+1) % (train_size//10) == 0:
+                # Save a trained model
+                # print("** ** * Saving fine - tuned model ** ** * ")
+                model_to_save = model.module if hasattr(model, 'module') \
+                    else model  # Only save the model it-self
+                output_model_file = os.path.join(
+                    args.output_dir, "e{}-s{}.bin".format(epoch, step//(train_size//10)))
+                torch.save(model_to_save.state_dict(), output_model_file)
+    loss_log.close()
 
 
 def _truncate_seq_pair(tokens_a, tokens_b, max_length):
