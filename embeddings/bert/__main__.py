@@ -190,6 +190,11 @@ class BERTDataset(Dataset):
             if self.on_memory:
                 rand_doc_idx = random.randint(0, len(self.all_docs)-1)
                 rand_doc = self.all_docs[rand_doc_idx]
+
+                # Check if document is empty
+                if not len(rand_doc):
+                    continue
+
                 line = rand_doc[random.randrange(len(rand_doc))]
             else:
                 rand_index = random.randint(1, self.corpus_lines if self.corpus_lines < 1000 else 1000)
@@ -493,6 +498,7 @@ if __name__ == "__main__":
     for epoch in trange(int(args.epochs), desc="Epoch"):
         tr_loss = 0
         nb_tr_examples, nb_tr_steps = 0, 0
+
         train_size = len(train_dataloader)
         for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
             batch = tuple(t.to(device) for t in batch)
@@ -523,7 +529,6 @@ if __name__ == "__main__":
 
             if (step + 1) % (train_size // 10) == 0:
                 # Save a trained model
-                # print("** ** * Saving fine - tuned model ** ** * ")
                 model_to_save = model.module if hasattr(model, 'module') \
                     else model  # Only save the model it-self
                 output_model_file = os.path.join(
