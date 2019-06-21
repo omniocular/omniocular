@@ -21,8 +21,9 @@ def get_args():
     parser.add_argument('--fp16', action='store_true', help="use 16-bit float precision instead of 32-bit")
     parser.add_argument('--loss-scale', type=float, default=0, help="loss scaling to improve fp16 numeric stability")
     parser.add_argument("--on-memory", action='store_true', help="load the entire corpus into memory")
-    parser.add_argument("--output-dir", type=str, required=True, help="directory for checkpointing models")
     parser.add_argument("--data-path", type=str, required=True, help="path to training corpus")
+    parser.add_argument("--output-dir", type=str, required=True, help="directory for checkpointing models")
+    parser.add_argument("--log-dir", type=str, required=True, help="directory to write log with the training loss")
 
     args = parser.parse_args()
     return args

@@ -384,7 +384,29 @@ def convert_example_to_features(example, max_seq_length, tokenizer):
     return features
 
 
-def main():
+def _truncate_seq_pair(tokens_a, tokens_b, max_length):
+    """Truncates a sequence pair in place to the maximum length."""
+
+    # This is a simple heuristic which will always truncate the longer sequence
+    # one token at a time. This makes more sense than truncating an equal percent
+    # of tokens from each, since if one sequence is very short then each token
+    # that's truncated likely contains more information than a longer sequence.
+    while True:
+        total_length = len(tokens_a) + len(tokens_b)
+        if total_length <= max_length:
+            break
+        if len(tokens_a) > len(tokens_b):
+            tokens_a.pop()
+        else:
+            tokens_b.pop()
+
+
+def accuracy(out, labels):
+    outputs = np.argmax(out, axis=1)
+    return np.sum(outputs == labels)
+
+
+if __name__ == "__main__":
     args = get_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
@@ -394,7 +416,7 @@ def main():
 
     if args.gradient_accumulation_steps < 1:
         raise ValueError("Invalid gradient_accumulation_steps parameter: {}, should be >= 1".format(
-                            args.gradient_accumulation_steps))
+            args.gradient_accumulation_steps))
 
     args.batch_size = args.batch_size // args.gradient_accumulation_steps
 
@@ -431,7 +453,7 @@ def main():
     optimizer_grouped_parameters = [
         {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
         {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
-        ]
+    ]
 
     if args.fp16:
         try:
@@ -466,8 +488,9 @@ def main():
     train_sampler = RandomSampler(train_dataset)
     train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.batch_size)
 
-    loss_log = open("bert_pretrain_output/loss_log", 'w')
+    loss_log = open(args.log_dir + "/loss_log", 'w')
     model.train()
+
     for epoch in trange(int(args.epochs), desc="Epoch"):
         tr_loss = 0
         nb_tr_examples, nb_tr_steps = 0, 0
@@ -477,7 +500,7 @@ def main():
             input_ids, input_mask, segment_ids, lm_label_ids, is_next = batch
             loss = model(input_ids, segment_ids, input_mask, lm_label_ids, is_next)
             if n_gpu > 1:
-                loss = loss.mean() # mean() to average on multi-gpu.
+                loss = loss.mean()  # mean() to average on multi-gpu.
             if args.gradient_accumulation_steps > 1:
                 loss = loss / args.gradient_accumulation_steps
             if args.fp16:
@@ -499,38 +522,13 @@ def main():
                 global_step += 1
                 print("{}\t{}\t{}".format(epoch, step, loss.cpu().item()), file=loss_log)
 
-            if (step+1) % (train_size//10) == 0:
+            if (step + 1) % (train_size // 10) == 0:
                 # Save a trained model
                 # print("** ** * Saving fine - tuned model ** ** * ")
                 model_to_save = model.module if hasattr(model, 'module') \
                     else model  # Only save the model it-self
                 output_model_file = os.path.join(
-                    args.output_dir, "e{}-s{}.bin".format(epoch, step//(train_size//10)))
+                    args.output_dir, "e{}-s{}.bin".format(epoch, step // (train_size // 10)))
                 torch.save(model_to_save.state_dict(), output_model_file)
+
     loss_log.close()
-
-
-def _truncate_seq_pair(tokens_a, tokens_b, max_length):
-    """Truncates a sequence pair in place to the maximum length."""
-
-    # This is a simple heuristic which will always truncate the longer sequence
-    # one token at a time. This makes more sense than truncating an equal percent
-    # of tokens from each, since if one sequence is very short then each token
-    # that's truncated likely contains more information than a longer sequence.
-    while True:
-        total_length = len(tokens_a) + len(tokens_b)
-        if total_length <= max_length:
-            break
-        if len(tokens_a) > len(tokens_b):
-            tokens_a.pop()
-        else:
-            tokens_b.pop()
-
-
-def accuracy(out, labels):
-    outputs = np.argmax(out, axis=1)
-    return np.sum(outputs == labels)
-
-
-if __name__ == "__main__":
-    main()
