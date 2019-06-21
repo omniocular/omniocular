@@ -30,38 +30,35 @@ from embeddings.bert.args import get_args
 
 
 class BERTDataset(Dataset):
-    def __init__(self, corpus_path, tokenizer, seq_len, encoding="utf-8", corpus_lines=None, on_memory=True):
+    def __init__(self, corpus_path, tokenizer, seq_len, encoding="utf-8", on_memory=True):
         self.vocab = tokenizer.vocab
         self.tokenizer = tokenizer
         self.seq_len = seq_len
         self.on_memory = on_memory
-        self.corpus_lines = corpus_lines  # number of non-empty lines in input corpus
+        self.corpus_lines = 0
         self.corpus_path = corpus_path
         self.encoding = encoding
         self.current_doc = 0  # to avoid random sentence from same doc
 
-        # for loading samples directly from file
         self.sample_counter = 0  # used to keep track of full epochs on file
         self.line_buffer = None  # keep second sentence of a pair in memory and use as first sentence in next pair
 
-        # for loading samples in memory
         self.current_random_doc = 0
         self.num_docs = 0
         self.sample_to_doc = []  # map sample index to doc and line
 
-        # load samples into memory
+        # Load samples into memory
         if on_memory:
             self.all_docs = []
             doc = []
-            self.corpus_lines = 0
             with open(corpus_path, "r", encoding=encoding) as f:
-                for line in tqdm(f, desc="Loading Dataset", total=corpus_lines):
+                for line in tqdm(f, desc="Loading Dataset"):
                     line = line.strip()
                     if line == '':
                         self.all_docs.append(doc)
                         doc = []
-                        # # Remove last added sample as it doesn't have a subsequent line
-                        # self.sample_to_doc.pop()
+                        # Remove last added sample as it doesn't have a subsequent line
+                        self.sample_to_doc.pop()
                     else:
                         sample = {"doc_id": len(self.all_docs),
                                   "line": len(doc)}
@@ -69,11 +66,14 @@ class BERTDataset(Dataset):
                         doc.append(line)
                         self.corpus_lines = self.corpus_lines + 1
 
-            self.all_docs.append(doc)
-            self.sample_to_doc.pop()
+            # If last row in file is not empty
+            if self.all_docs[-1] != doc:
+                self.all_docs.append(doc)
+                self.sample_to_doc.pop()
+
             self.num_docs = len(self.all_docs)
 
-        # load samples later lazily from disk
+        # Load samples lazily from disk
         else:
             if self.corpus_lines is None:
                 with open(corpus_path, "r", encoding=encoding) as f:
@@ -434,8 +434,7 @@ if __name__ == "__main__":
     tokenizer = BertTokenizer.from_pretrained(args.model, is_lowercase=args.do_lower_case)
 
     print("Loading Train Dataset", args.data_path)
-    train_dataset = BERTDataset(args.data_path, tokenizer, seq_len=args.max_seq_length,
-                                corpus_lines=None, on_memory=args.on_memory)
+    train_dataset = BERTDataset(args.data_path, tokenizer, seq_len=args.max_seq_length, on_memory=args.on_memory)
     num_train_optimization_steps = int(
         len(train_dataset) / args.batch_size / args.gradient_accumulation_steps) * args.epochs
 
