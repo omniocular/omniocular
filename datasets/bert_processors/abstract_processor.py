@@ -3,6 +3,7 @@ import csv
 import sys
 import numpy as np
 
+csv.field_size_limit(sys.maxsize)
 
 class InputExample(object):
     """A single training/test example for simple sequence classification."""
@@ -153,7 +154,6 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer, print_exam
         assert len(input_ids) == max_seq_length
         assert len(input_mask) == max_seq_length
         assert len(segment_ids) == max_seq_length
-
         label_id = [float(x) for x in example.label]
 
         if print_examples and ex_index < 5:
