@@ -93,19 +93,19 @@ class BertTokenizer(object):
             [(ids, tok) for tok, ids in self.vocab.items()])
         self.do_basic_tokenize = do_basic_tokenize
         if do_basic_tokenize:
-          self.basic_tokenizer = BasicTokenizer(is_lowercase=is_lowercase,
+            self.basic_tokenizer = BasicTokenizer(is_lowercase=is_lowercase,
                                                 never_split=never_split)
         self.wordpiece_tokenizer = WordpieceTokenizer(vocab=self.vocab)
         self.max_len = max_len if max_len is not None else int(1e12)
 
     def tokenize(self, text):
         if self.do_basic_tokenize:
-          split_tokens = []
-          for token in self.basic_tokenizer.tokenize(text):
-              for sub_token in self.wordpiece_tokenizer.tokenize(token):
-                  split_tokens.append(sub_token)
+            split_tokens = []
+            for token in self.basic_tokenizer.tokenize(text):
+                for sub_token in self.wordpiece_tokenizer.tokenize(token):
+                    split_tokens.append(sub_token)
         else:
-          split_tokens = self.wordpiece_tokenizer.tokenize(text)
+            split_tokens = self.wordpiece_tokenizer.tokenize(text)
         return split_tokens
 
     def convert_tokens_to_ids(self, tokens):

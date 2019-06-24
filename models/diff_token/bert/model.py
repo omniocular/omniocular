@@ -564,9 +564,10 @@ class BertPreTrainedModel(nn.Module):
             logger.info("loading archive file {} from cache at {}".format(
                 archive_file, resolved_archive_file))
         tempdir = None
+        weights_name = WEIGHTS_NAME
         if os.path.isdir(resolved_archive_file) or from_tf:
             serialization_dir = resolved_archive_file
-        else:
+        elif pretrained_model_name_or_path in PRETRAINED_MODEL_ARCHIVE_MAP:
             # Extract archive to temp dir
             tempdir = tempfile.mkdtemp()
             logger.info("extracting archive file {} to temp dir {}".format(
@@ -574,6 +575,9 @@ class BertPreTrainedModel(nn.Module):
             with tarfile.open(resolved_archive_file, 'r:gz') as archive:
                 archive.extractall(tempdir)
             serialization_dir = tempdir
+        else:
+            serialization_dir = os.path.dirname(os.path.realpath(archive_file))
+            weights_name = os.path.basename(archive_file)
         # Load config
         config_file = os.path.join(serialization_dir, CONFIG_NAME)
         config = BertConfig.from_json_file(config_file)
@@ -581,8 +585,9 @@ class BertPreTrainedModel(nn.Module):
         # Instantiate model.
         model = cls(config, *inputs, **kwargs)
         if state_dict is None and not from_tf:
-            weights_path = os.path.join(serialization_dir, WEIGHTS_NAME)
-            state_dict = torch.load(weights_path, map_location='cpu' if not torch.cuda.is_available() else None)
+            weights_path = os.path.join(serialization_dir, weights_name)
+            state_dict = torch.load(weights_path,
+                map_location=None if torch.cuda.is_available() else 'cpu')
         if tempdir:
             # Clean up temp dir
             shutil.rmtree(tempdir)
@@ -770,11 +775,13 @@ class BertForPreTraining(BertPreTrainedModel):
     masked_lm_logits_scores, seq_relationship_logits = model(input_ids, token_type_ids, input_mask)
     ```
     """
-    def __init__(self, config):
+    def __init__(self, config, **kwargs):
         super(BertForPreTraining, self).__init__(config)
         self.bert = BertModel(config)
         self.cls = BertPreTrainingHeads(config, self.bert.embeddings.word_embeddings.weight)
         self.apply(self.init_bert_weights)
+        with open(kwargs["savedir"]+"/bert_config.json", 'w') as f:
+            print(repr(config), end='', file=f)
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, masked_lm_labels=None, next_sentence_label=None):
         sequence_output, pooled_output = self.bert(input_ids, token_type_ids, attention_mask,

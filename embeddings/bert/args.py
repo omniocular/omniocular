@@ -5,7 +5,7 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--model', default='bert-base-uncased', type=str, required=False)
-    parser.add_argument("--batch-size", default=256, type=int)
+    parser.add_argument("--batch-size", default=128, type=int)
     parser.add_argument("--epochs", default=3.0, type=float)
     parser.add_argument("--lr", default=3e-5, type=float, help="initial learning rate for adam")
     parser.add_argument('--seed', type=int, default=42, help="random seed for initialization")

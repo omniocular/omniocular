@@ -444,7 +444,7 @@ if __name__ == "__main__":
         len(train_dataset) / args.batch_size / args.gradient_accumulation_steps) * args.epochs
 
     # Prepare model
-    model = BertForPreTraining.from_pretrained(args.model)
+    model = BertForPreTraining.from_pretrained(args.model, savedir=args.output_dir)
     if args.fp16:
         model.half()
     model.to(device)
