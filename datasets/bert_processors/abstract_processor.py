@@ -100,11 +100,11 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer, print_exam
 
     features = []
     for (ex_index, example) in enumerate(examples):
-        tokens_a = tokenizer.tokenize(example.text_a)
+        tokens_a = [[tokenizer.tokenize(line) for line in file] for file in example.text_a]
 
         tokens_b = None
         if example.text_b:
-            tokens_b = tokenizer.tokenize(example.text_b)
+            tokens_b = [[tokenizer.tokenize(line) for line in file] for file in example.text_b]
             # Modifies `tokens_a` and `tokens_b` in place so that the total
             # length is less than the specified length.
             # Account for [CLS], [SEP], [SEP] with "- 3"
@@ -112,7 +112,7 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer, print_exam
         else:
             # Account for [CLS] and [SEP] with "- 2"
             if len(tokens_a) > max_seq_length - 2:
-                tokens_a = tokens_a[:(max_seq_length - 2)]
+                tokens_a = [[line[:(max_seq_length - 2)] for line in file] for file in tokens_a]
 
         # The convention in BERT is:
         # (a) For sequence pairs:
@@ -132,8 +132,8 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer, print_exam
         # For classification tasks, the first vector (corresponding to [CLS]) is
         # used as as the "sentence vector". Note that this only makes sense because
         # the entire model is fine-tuned.
-        tokens = ["[CLS]"] + tokens_a + ["[SEP]"]
-        segment_ids = [0] * len(tokens)
+        tokens = [[["[CLS]"] + line + ["[SEP]"] for line in file] for file in tokens_a]
+        segment_ids = [[[0] * len(line) for line in file] for file in tokens]
 
         if tokens_b:
             tokens += tokens_b + ["[SEP]"]
@@ -143,17 +143,17 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer, print_exam
 
         # The mask has 1 for real tokens and 0 for padding tokens. Only real
         # tokens are attended to.
-        input_mask = [1] * len(input_ids)
+        input_mask = [[[1] * len(ids) for ids in file] for file in input_ids]
 
         # Zero-pad up to the sequence length.
-        padding = [0] * (max_seq_length - len(input_ids))
-        input_ids += padding
-        input_mask += padding
-        segment_ids += padding
+        padding = [[[0] * (max_seq_length - len(ids)) for ids in file] for file in input_ids]
 
-        assert len(input_ids) == max_seq_length
-        assert len(input_mask) == max_seq_length
-        assert len(segment_ids) == max_seq_length
+        for i0 in range(len(input_ids)):
+            for i1 in range(len(input_ids[0])):
+                input_ids[i0][i1] += padding[i0][i1]
+                input_mask[i0][i1] += padding[i0][i1]
+                segment_ids[i0][i1] += padding[i0][i1]
+
         label_id = [float(x) for x in example.label]
 
         if print_examples and ex_index < 5:
