@@ -26,25 +26,22 @@ class HRBertForSequenceClassification(nn.Module):
         and each element is a line, i.e., a bert_batch,
         which consists of input_ids, input_mask, segment_ids, label_ids
         """
-        try:
-            file_embs = []
-            for file in batch:
-                line_embs = []
-                for line in file:
-                    input_ids, input_mask, segment_ids, label_ids = line
-                    line_emb = self.bert(
-                        input_ids, input_mask, segment_ids, False)
-                    line_embs.append(line_emb)
+        file_embs = []
+        for file in batch:
+            line_embs = []
+            for line in file:
+                input_ids, input_mask, segment_ids, label_ids = line
+                line_emb = self.bert(
+                    input_ids, input_mask, segment_ids, False)
+                line_embs.append(line_emb)
 
-                file_emb = self.max_pool_file(
-                    torch.stack(line_embs, 2))
-                file_emb = torch.squeeze(file_emb, 2)
-                file_embs.append(self.dropout(file_emb))
+            file_emb = self.max_pool_file(
+                torch.stack(line_embs, 2))
+            file_emb = torch.squeeze(file_emb, 2)
+            file_embs.append(self.dropout(file_emb))
 
-            coll_emb = self.max_pool_coll(
-                torch.stack(file_embs, 2))
-            coll_emb = torch.squeeze(coll_emb, 2)
-            logits = self.classifier(coll_emb)
-            return logits
-        except RuntimeError:
-            breakpoint()
+        coll_emb = self.max_pool_coll(
+            torch.stack(file_embs, 2))
+        coll_emb = torch.squeeze(coll_emb, 2)
+        logits = self.classifier(coll_emb)
+        return logits
