@@ -5,11 +5,11 @@ import time
 import numpy as np
 import torch
 
-from common.evaluators.bert_evaluator import BertEvaluator
-from common.trainers.bert_trainer import BertTrainer
+from common.evaluators.bert_evaluator import HRBertEvaluator
+from common.trainers.bert_trainer import HRBertTrainer
 from datasets.bert_processors.vulas_diff_token import VulasDiffTokenProcessor
 from models.diff_token.bert.args import get_args
-from models.diff_token.bert.model import BertForSequenceClassification
+from models.diff_token.bert.hrmodel import HRBertForSequenceClassification
 from util.io import PYTORCH_PRETRAINED_BERT_CACHE
 from util.optimization import BertAdam
 from util.tokenization import BertTokenizer
@@ -20,7 +20,7 @@ LOG_TEMPLATE = ' '.join('{:>5s},{:>9.4f},{:>8.4f},{:8.4f},{:8.4f},{:10.4f}'.spli
 
 
 def evaluate_split(model, processor, args, split='dev'):
-    evaluator = BertEvaluator(model, processor, args, split)
+    evaluator = HRBertEvaluator(model, processor, args, split)
     start_time = time.time()
     accuracy, precision, recall, f1, avg_loss = evaluator.get_scores(silent=True)[0]
     print("Inference time", time.time() - start_time)
@@ -89,7 +89,7 @@ if __name__ == '__main__':
             num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
 
     cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_PRETRAINED_BERT_CACHE), 'distributed_{}'.format(args.local_rank))
-    model = BertForSequenceClassification.from_pretrained(args.pretrained_model, cache_dir=cache_dir, num_labels=args.num_labels)
+    model = HRBertForSequenceClassification(args, cache_dir)
 
     if args.fp16:
         model.half()
@@ -131,9 +131,9 @@ if __name__ == '__main__':
         optimizer = BertAdam(optimizer_grouped_parameters,
                              lr=args.lr,
                              warmup=args.warmup_proportion,
-                             t_total=num_train_optimization_steps)    
+                             t_total=num_train_optimization_steps)
 
-    trainer = BertTrainer(model, optimizer, processor, args)
+    trainer = HRBertTrainer(model, optimizer, processor, args)
 
     if not args.trained_model:
         trainer.train()

@@ -14,6 +14,7 @@ def get_args():
     parser.add_argument('--trained-model', default=None, type=str)
     parser.add_argument('--local-rank', type=int, default=-1, help='local rank for distributed training')
     parser.add_argument('--fp16', action='store_true', help='use 16-bit floating point precision')
+    parser.add_argument('--dropout', default=0.5, type=float, help='dropout rate for finetuning')
 
     parser.add_argument('--max-seq-length',
                         default=64,
