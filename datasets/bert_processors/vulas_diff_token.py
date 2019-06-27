@@ -1,3 +1,4 @@
+import json
 import os
 import json
 
@@ -28,7 +29,7 @@ class VulasDiffTokenProcessor(AbstractProcessor):
             if i == 0:
                 continue
             guid = "%s-%s" % (set_type, i)
-            text_a = ' '.join(json.loads(line[2]))
+            text_a = [x.split('\n') for x in json.loads(line[2])]
             label = line[3]
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=None, label=label))

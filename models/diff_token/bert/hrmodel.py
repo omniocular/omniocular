@@ -15,10 +15,9 @@ class HRBertForSequenceClassification(nn.Module):
             dropout=args.dropout
         )
         self.dropout = nn.Dropout(args.dropout)
-        self.max_pool_file = nn.MaxPool1d(1000) #assume 1000 is the largest number
+        self.max_pool_file = nn.MaxPool1d(1000)
         self.max_pool_coll = nn.MaxPool1d(1000)
         self.classifier = nn.Linear(self.bert.config.hidden_size, args.num_labels)
-
 
     def forward(self, batch):
         """

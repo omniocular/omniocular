@@ -147,10 +147,10 @@ class HRBertTrainer(object):
             self.model.train()
             batch = tuple(t.to(self.args.device) for t in batch)
             label_ids = batch[3]
-            batch = [
-                [batch, batch, batch],
-                [batch, batch, batch, batch]
-            ] # 2 files, each 3 or 4 lines, needs changing
+            # batch = [
+            #     [batch, batch, batch],
+            #     [batch, batch, batch, batch]
+            # ] # 2 files, each 3 or 4 lines, needs changing
             logits = self.model(batch)
 
             if self.args.is_multilabel:
