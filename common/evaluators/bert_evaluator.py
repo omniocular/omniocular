@@ -112,11 +112,10 @@ class HRBertEvaluator(object):
         for batch in tqdm(eval_dataloader, desc="Evaluating", disable=silent):
             batch = tuple(t.to(self.args.device) for t in batch)
             input_ids, input_mask, segment_ids, label_ids = batch
-            batch = [
-                [batch, batch, batch],
-                [batch, batch, batch, batch]
-            ] # 2 files, each 3 or 4 lines, needs changing
-            logits = self.model(batch)
+            # batch = [
+            #     [batch, batch, batch],
+            #     [batch, batch, batch, batch]
+            # ] # 2 files, each 3 or 4 lines, needs changing
 
             with torch.no_grad():
                 logits = self.model(batch)
