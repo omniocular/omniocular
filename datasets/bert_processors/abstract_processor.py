@@ -149,7 +149,7 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer, print_exam
         padding = [[[0] * (max_seq_length - len(ids)) for ids in file] for file in input_ids]
 
         for i0 in range(len(input_ids)):
-            for i1 in range(len(input_ids[0])):
+            for i1 in range(len(input_ids[i0])):
                 input_ids[i0][i1] += padding[i0][i1]
                 input_mask[i0][i1] += padding[i0][i1]
                 segment_ids[i0][i1] += padding[i0][i1]
