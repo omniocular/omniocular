@@ -1,6 +1,7 @@
 import datetime
 import os
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from tensorboardX import SummaryWriter
@@ -12,6 +13,7 @@ from tqdm import trange
 from common.evaluators.bert_evaluator import BertEvaluator, HRBertEvaluator
 from datasets.bert_processors.abstract_processor import convert_examples_to_features
 from util.optimization import warmup_linear
+from util.preprocess import get_padded_matrix
 from util.tokenization import BertTokenizer
 
 
@@ -187,11 +189,16 @@ class HRBertTrainer(object):
         print("Batch size:", self.args.batch_size)
         print("Num of steps:", self.num_train_optimization_steps)
 
-        all_input_ids = torch.tensor([f.input_ids for f in train_features], dtype=torch.long)
-        all_input_mask = torch.tensor([f.input_mask for f in train_features], dtype=torch.long)
-        all_segment_ids = torch.tensor([f.segment_ids for f in train_features], dtype=torch.long)
-        all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
-        train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
+        padded_input_ids = get_padded_matrix([f.input_ids for f in train_features])
+        padded_input_mask = get_padded_matrix([f.input_mask for f in train_features])
+        padded_segment_ids = get_padded_matrix([f.segment_ids for f in train_features])
+
+        padded_input_ids = torch.tensor(padded_input_ids, dtype=torch.long)
+        padded_input_mask = torch.tensor(padded_input_mask, dtype=torch.long)
+        padded_segment_ids = torch.tensor(padded_segment_ids, dtype=torch.long)
+        label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
+        train_data = TensorDataset(padded_input_ids, padded_input_mask, padded_segment_ids, label_ids)
+
         if self.args.local_rank == -1:
             train_sampler = RandomSampler(train_data)
         else:
@@ -221,4 +228,3 @@ class HRBertTrainer(object):
                     self.early_stop = True
                     tqdm.write("Early Stopping. Epoch: {}, Best Dev F1: {}".format(epoch, self.best_dev_f1))
                     break
-
