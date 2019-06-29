@@ -22,6 +22,14 @@ def get_args():
                         help='The maximum total input sequence length after WordPiece tokenization. \n'
                              'Sequences longer than this will be truncated, and sequences shorter \n'
                              'than this will be padded.')
+    parser.add_argument('--max-file',
+                        default=8,
+                        type=int,
+                        help='The maximum number of files processed in one commit.')
+    parser.add_argument('--max-line',
+                        default=8,
+                        type=int,
+                        help='The maximum number of lines processed in one file.')
 
     parser.add_argument('--warmup-proportion',
                         default=0.1,

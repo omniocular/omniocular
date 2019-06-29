@@ -92,7 +92,10 @@ class HRBertEvaluator(object):
             self.eval_examples = self.processor.get_dev_examples(args.data_dir)
 
     def get_scores(self, silent=False):
-        eval_features = convert_examples_to_features(self.eval_examples, self.args.max_seq_length, self.tokenizer)
+        eval_features = convert_examples_to_features(
+            self.eval_examples, self.args.max_seq_length, self.tokenizer,
+            self.args.max_file, self.args.max_line
+        )
 
         all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)
         all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)
