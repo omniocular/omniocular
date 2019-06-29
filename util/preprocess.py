@@ -31,16 +31,26 @@ def process_labels(string):
     return [float(x) for x in string]
 
 
-def get_padded_matrix(unpadded_matrix):
+def get_padded_matrix(unpadded_matrix, mflimit, mllimit):
     """
     Returns a zero-padded matrix for a given jagged list
     :param unpadded_matrix: jagged list to be padded
     :return: zero-padded matrix
     """
-    max_files = max(len(x) for x in unpadded_matrix)
-    max_lines = max(max(len(x) for x in y) for y in unpadded_matrix)
-    padded_input_ids = np.zeros((len(unpadded_matrix), max_files, max_lines, len(unpadded_matrix[0][0][0])))
 
-    for i, j in enumerate(unpadded_matrix):
-        padded_input_ids[i][0:len(j)] = j
-    return padded_input_ids
+    max_files = min(mflimit, max(len(x) for x in unpadded_matrix))
+    max_lines = min(mllimit, max(max(len(x) for x in y) for y in unpadded_matrix))
+    padded_matrix = np.zeros(
+        [len(unpadded_matrix),
+         max_files,
+         max_lines,
+         len(unpadded_matrix[0][0][0])]
+     )
+
+    for i0 in range(len(unpadded_matrix)):
+        for i1 in range(len(unpadded_matrix[i0])):
+            for i2 in range(len(unpadded_matrix[i0][i1])):
+                padded_matrix[i0][i1][i2] = unpadded_matrix[i0][i1][i2]
+
+    return padded_matrix
+

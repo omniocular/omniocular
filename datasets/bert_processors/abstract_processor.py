@@ -88,7 +88,8 @@ class AbstractProcessor(object):
             return lines
 
 
-def convert_examples_to_features(examples, max_seq_length, tokenizer, print_examples=False):
+def convert_examples_to_features(examples, max_seq_length, tokenizer,
+                                 max_file, max_line, print_examples=False):
     """
     Loads a data file into a list of InputBatch objects
     :param examples:
@@ -100,7 +101,16 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer, print_exam
 
     features = []
     for (ex_index, example) in enumerate(examples):
-        tokens_a = [[tokenizer.tokenize(line) for line in file] for file in example.text_a]
+        tokens_a = []
+        for i0, file in enumerate(example.text_a):
+            if i0 >= max_file:
+                break
+            tokens_a_file = []
+            for i1, line in enumerate(file):
+                if i1 >= max_line:
+                    break
+                tokens_a_file.append(tokenizer.tokenize(line))
+            tokens_a.append(tokens_a_file)
 
         tokens_b = None
         if example.text_b:
@@ -111,8 +121,10 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer, print_exam
             _truncate_seq_pair(tokens_a, tokens_b, max_seq_length - 3)
         else:
             # Account for [CLS] and [SEP] with "- 2"
-            if len(tokens_a) > max_seq_length - 2:
-                tokens_a = [[line[:(max_seq_length - 2)] for line in file] for file in tokens_a]
+            for i0 in range(len(tokens_a)):
+               for i1 in range(len(tokens_a[i0])):
+                   if len(tokens_a[i0][i1]) > max_seq_length - 2:
+                       tokens_a[i0][i1] = tokens_a[i0][i1][:(max_seq_length - 2)]
 
         # The convention in BERT is:
         # (a) For sequence pairs:

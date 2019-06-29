@@ -183,15 +183,25 @@ class HRBertTrainer(object):
 
     def train(self):
         train_features = convert_examples_to_features(
-            self.train_examples, self.args.max_seq_length, self.tokenizer)
+            self.train_examples, self.args.max_seq_length, self.tokenizer,
+            self.args.max_file, self.args.max_line)
 
         print("Number of examples: ", len(self.train_examples))
         print("Batch size:", self.args.batch_size)
         print("Num of steps:", self.num_train_optimization_steps)
 
-        padded_input_ids = get_padded_matrix([f.input_ids for f in train_features])
-        padded_input_mask = get_padded_matrix([f.input_mask for f in train_features])
-        padded_segment_ids = get_padded_matrix([f.segment_ids for f in train_features])
+        padded_input_ids = get_padded_matrix(
+            [f.input_ids for f in train_features],
+            self.args.max_file, self.args.max_line
+        )
+        padded_input_mask = get_padded_matrix(
+            [f.input_mask for f in train_features],
+            self.args.max_file, self.args.max_line
+        )
+        padded_segment_ids = get_padded_matrix(
+            [f.segment_ids for f in train_features],
+            self.args.max_file, self.args.max_line
+        )
 
         padded_input_ids = torch.tensor(padded_input_ids, dtype=torch.long)
         padded_input_mask = torch.tensor(padded_input_mask, dtype=torch.long)
