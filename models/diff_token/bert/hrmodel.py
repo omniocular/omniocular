@@ -25,13 +25,13 @@ class HRBertForSequenceClassification(nn.Module):
         and each element is a line, i.e., a bert_batch,
         which consists of input_ids, input_mask, segment_ids, label_ids
         """
+        input_ids, input_mask, segment_ids, label_ids = batch
         file_embs = []
-        for file in batch:
+        for i0 in range(len(input_ids)):
             line_embs = []
-            for line in file:
-                input_ids, input_mask, segment_ids, label_ids = line
+            for i1 in range(len(input_ids[i0])):
                 line_emb = self.bert(
-                    input_ids, input_mask, segment_ids, False)
+                    input_ids[i0][i1], input_mask[i0][i1], segment_ids[i0][i1], False)
                 line_embs.append(line_emb)
 
             file_emb = self.max_pool_file(
