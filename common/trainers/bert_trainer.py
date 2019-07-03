@@ -147,12 +147,9 @@ class HRBertTrainer(object):
     def train_epoch(self, train_dataloader):
         for step, batch in enumerate(tqdm(train_dataloader, desc="Training")):
             self.model.train()
+
             batch = tuple(t.to(self.args.device) for t in batch)
             label_ids = batch[3]
-            # batch = [
-            #     [batch, batch, batch],
-            #     [batch, batch, batch, batch]
-            # ] # 2 files, each 3 or 4 lines, needs changing
             logits = self.model(batch)
 
             if self.args.is_multilabel:

@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader, SequentialSampler, TensorDataset
 from tqdm import tqdm
 
 from datasets.bert_processors.abstract_processor import convert_examples_to_features
+from util.preprocess import get_padded_matrix
 from util.tokenization import BertTokenizer
 
 # Suppress warnings from sklearn.metrics
@@ -94,15 +95,27 @@ class HRBertEvaluator(object):
     def get_scores(self, silent=False):
         eval_features = convert_examples_to_features(
             self.eval_examples, self.args.max_seq_length, self.tokenizer,
+            self.args.max_file, self.args.max_line)
+
+        padded_input_ids = get_padded_matrix(
+            [f.input_ids for f in eval_features],
+            self.args.max_file, self.args.max_line
+        )
+        padded_input_mask = get_padded_matrix(
+            [f.input_mask for f in eval_features],
+            self.args.max_file, self.args.max_line
+        )
+        padded_segment_ids = get_padded_matrix(
+            [f.segment_ids for f in eval_features],
             self.args.max_file, self.args.max_line
         )
 
-        all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)
-        all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)
-        all_segment_ids = torch.tensor([f.segment_ids for f in eval_features], dtype=torch.long)
-        all_label_ids = torch.tensor([f.label_id for f in eval_features], dtype=torch.long)
+        padded_input_ids = torch.tensor(padded_input_ids, dtype=torch.long)
+        padded_input_mask = torch.tensor(padded_input_mask, dtype=torch.long)
+        padded_segment_ids = torch.tensor(padded_segment_ids, dtype=torch.long)
+        label_ids = torch.tensor([f.label_id for f in eval_features], dtype=torch.long)
 
-        eval_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
+        eval_data = TensorDataset(padded_input_ids, padded_input_mask, padded_segment_ids, label_ids)
         eval_sampler = SequentialSampler(eval_data)
         eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=self.args.batch_size)
 
@@ -115,10 +128,6 @@ class HRBertEvaluator(object):
         for batch in tqdm(eval_dataloader, desc="Evaluating", disable=silent):
             batch = tuple(t.to(self.args.device) for t in batch)
             input_ids, input_mask, segment_ids, label_ids = batch
-            # batch = [
-            #     [batch, batch, batch],
-            #     [batch, batch, batch, batch]
-            # ] # 2 files, each 3 or 4 lines, needs changing
 
             with torch.no_grad():
                 logits = self.model(batch)

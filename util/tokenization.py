@@ -121,7 +121,7 @@ class BertTokenizer(object):
                         logger.warning(
                             "Token indices sequence length is longer than the specified maximum "
                             " sequence length for this BERT model ({} > {}). Running this"
-                            " sequence through BERT will result in indexing errors".format(len(ids), self.max_len)
+                            " sequence through BERT will result in indexing errors".format(len(ids[-1][-1]), self.max_len)
                         )
         return ids
 
