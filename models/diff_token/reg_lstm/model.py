@@ -27,12 +27,15 @@ class RegLSTM(nn.Module):
             rand_embed_init = torch.Tensor(config.words_num, config.words_dim).uniform_(-0.25, 0.25)
             self.embed = nn.Embedding.from_pretrained(rand_embed_init, freeze=False)
         elif config.mode == 'static':
-            self.static_embed = nn.Embedding.from_pretrained(dataset.TEXT_FIELD.vocab.vectors, freeze=True)
+            self.static_embed = nn.Embedding.from_pretrained(dataset.CODE_FIELD.vocab.vectors, freeze=True)
         elif config.mode == 'non-static':
-            self.non_static_embed = nn.Embedding.from_pretrained(dataset.TEXT_FIELD.vocab.vectors, freeze=False)
+            self.non_static_embed = nn.Embedding.from_pretrained(dataset.CODE_FIELD.vocab.vectors, freeze=False)
 
-        self.lstm = nn.LSTM(config.words_dim, config.hidden_dim, dropout=config.dropout, num_layers=config.num_layers,
-                            bidirectional=self.is_bidirectional, batch_first=True)
+        self.lstm = nn.LSTM(config.words_dim,
+                            config.hidden_dim,
+                            num_layers=config.num_layers,
+                            bidirectional=self.is_bidirectional,
+                            batch_first=True)
 
         if self.wdrop:
             self.lstm = WeightDrop(self.lstm, ['weight_hh_l0'], dropout=self.wdrop)
