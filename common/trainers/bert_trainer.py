@@ -4,7 +4,6 @@ import os
 import numpy as np
 import torch
 import torch.nn.functional as F
-from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
@@ -27,7 +26,6 @@ class BertTrainer(object):
         self.tokenizer = BertTokenizer.from_pretrained(args.model, is_lowercase=args.is_lowercase)
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        self.writer = SummaryWriter(logdir="tensorboard_logs/" + timestamp)
         self.snapshot_path = os.path.join(self.args.save_path, self.processor.NAME, '%s.pt' % timestamp)
 
         self.num_train_optimization_steps = int(
@@ -129,7 +127,6 @@ class HRBertTrainer(object):
         self.tokenizer = BertTokenizer.from_pretrained(args.model, is_lowercase=args.is_lowercase)
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        self.writer = SummaryWriter(logdir="tensorboard_logs/" + timestamp)
         self.snapshot_path = os.path.join(self.args.save_path, self.processor.NAME, '%s.pt' % timestamp)
 
         self.num_train_optimization_steps = int(

@@ -5,7 +5,6 @@ import numpy as np
 import os
 import torch
 import torch.nn.functional as F
-from tensorboardX import SummaryWriter
 
 from .generic_trainer import Trainer
 
@@ -24,7 +23,6 @@ class PairedTokenTrainer(Trainer):
             '{:>6.0f},{:>5.0f},{:>9.0f},{:>5.0f}/{:<5.0f} {:>7.0f}%,{:>8.6f},{:12.4f}'.split(','))
         self.dev_log_template = ' '.join(
             '{:>6.0f},{:>5.0f},{:>9.0f},{:>5.0f}/{:<5.0f} {:>7.4f},{:>8.4f},{:8.4f},{:12.4f},{:12.4f}'.split(','))
-        self.writer = SummaryWriter(log_dir="tensorboard_logs/" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         self.snapshot_path = os.path.join(self.model_outfile, self.train_loader.dataset.NAME, 'best_model.pt')
 
     def train_epoch(self, epoch):
@@ -73,8 +71,6 @@ class PairedTokenTrainer(Trainer):
 
             if self.iterations % self.log_interval == 1:
                 niter = epoch * len(self.train_loader) + batch_idx
-                self.writer.add_scalar('Train/Loss', loss.data.item(), niter)
-                self.writer.add_scalar('Train/Accuracy', train_acc, niter)
                 print(self.log_template.format(time.time() - self.start,
                                           epoch, self.iterations, 1 + batch_idx, len(self.train_loader),
                                           100. * (1 + batch_idx) / len(self.train_loader), loss.item(),
@@ -93,11 +89,6 @@ class PairedTokenTrainer(Trainer):
 
             # Evaluate performance on validation set
             dev_acc, dev_precision, dev_recall, dev_f1, dev_loss = self.dev_evaluator.get_scores()[0]
-            self.writer.add_scalar('Dev/Loss', dev_loss, epoch)
-            self.writer.add_scalar('Dev/Accuracy', dev_acc, epoch)
-            self.writer.add_scalar('Dev/Precision', dev_precision, epoch)
-            self.writer.add_scalar('Dev/Recall', dev_recall, epoch)
-            self.writer.add_scalar('Dev/F-measure', dev_f1, epoch)
             print('\n' + dev_header)
             print(self.dev_log_template.format(time.time() - self.start, epoch, self.iterations, epoch, epochs,
                                                dev_acc, dev_precision, dev_recall, dev_f1, dev_loss))
