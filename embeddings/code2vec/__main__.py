@@ -34,9 +34,6 @@ device = torch.device(
 logger.info("device: {0}".format(device))
 
 
-if args.env == "tensorboard":
-    from tensorboardX import SummaryWriter
-
 if args.find_hyperparams:
     import optuna
 
@@ -116,124 +113,103 @@ def _train(model, optimizer, criterion, option, reader, builder, trial):
     best_dev_f1 = 0
     best_test_f1 = 0
 
-    if args.env == "tensorboard":
-        summary_writer = SummaryWriter()
-    else:
-        summary_writer = None
+    for epoch in range(args.max_epoch):
+        train_loss = 0.0
 
-    try:
-        for epoch in range(args.max_epoch):
-            train_loss = 0.0
+        builder.refresh_dataset()
+        train_data_loader = DataLoader(
+            builder.train_dataset, batch_size=option.batch_size,
+            shuffle=True, num_workers=args.num_workers)
 
-            builder.refresh_dataset()
-            train_data_loader = DataLoader(
-                builder.train_dataset, batch_size=option.batch_size,
-                shuffle=True, num_workers=args.num_workers)
+        model.train()
+        for i_batch, sample_batched in enumerate(train_data_loader):
 
-            model.train()
-            for i_batch, sample_batched in enumerate(train_data_loader):
+            optimizer.zero_grad()
+            preds, label, _ = apply_batch(model, sample_batched, option.device)
+            loss = calculate_loss(preds, label, criterion, option)
+            loss.backward()
+            optimizer.step()
 
-                optimizer.zero_grad()
-                preds, label, _ = apply_batch(model, sample_batched, option.device)
-                loss = calculate_loss(preds, label, criterion, option)
-                loss.backward()
-                optimizer.step()
+            train_loss += loss.item()
 
-                train_loss += loss.item()
+        dev_data_loader = DataLoader(
+            builder.dev_dataset, batch_size=option.batch_size,
+            shuffle=True, num_workers=args.num_workers)
+        dev_loss, dev_accuracy, dev_precision, dev_recall, dev_f1 = test(
+            model, dev_data_loader, criterion, option, reader.label_vocab)
 
-            dev_data_loader = DataLoader(
-                builder.dev_dataset, batch_size=option.batch_size,
-                shuffle=True, num_workers=args.num_workers)
-            dev_loss, dev_accuracy, dev_precision, dev_recall, dev_f1 = test(
-                model, dev_data_loader, criterion, option, reader.label_vocab)
+        test_data_loader = DataLoader(
+            builder.test_dataset, batch_size=option.batch_size,
+            shuffle=True, num_workers=args.num_workers)
+        test_loss, test_accuracy, test_precision, test_recall, test_f1 = test(
+            model, test_data_loader, criterion, option, reader.label_vocab)
 
-            test_data_loader = DataLoader(
-                builder.test_dataset, batch_size=option.batch_size,
-                shuffle=True, num_workers=args.num_workers)
-            test_loss, test_accuracy, test_precision, test_recall, test_f1 = test(
-                model, test_data_loader, criterion, option, reader.label_vocab)
+        print()
+        print("epoch {0}".format(epoch))
+        print('{{"metric": "train_loss", "value": {0}}}'.format(train_loss))
+        print('{{"metric": "dev_loss", "value": {0}}}'.format(dev_loss))
+        print('{{"metric": "test_loss", "value": {0}}}'.format(test_loss))
+        print('Metrics for dev split:')
+        print('{{"metric": "accuracy", "value": {0}}}'.format(dev_accuracy))
+        print('{{"metric": "precision", "value": {0}}}'.format(dev_precision))
+        print('{{"metric": "recall", "value": {0}}}'.format(dev_recall))
+        print('{{"metric": "f1", "value": {0}}}'.format(dev_f1))
+        print('Metrics for test split:')
+        print('{{"metric": "accuracy", "value": {0}}}'.format(test_accuracy))
+        print('{{"metric": "precision", "value": {0}}}'.format(test_precision))
+        print('{{"metric": "recall", "value": {0}}}'.format(test_recall))
+        print('{{"metric": "f1", "value": {0}}}'.format(test_f1))
 
-            print()
-            print("epoch {0}".format(epoch))
-            print('{{"metric": "train_loss", "value": {0}}}'.format(train_loss))
-            print('{{"metric": "dev_loss", "value": {0}}}'.format(dev_loss))
-            print('{{"metric": "test_loss", "value": {0}}}'.format(test_loss))
-            print('Metrics for dev split:')
-            print('{{"metric": "accuracy", "value": {0}}}'.format(dev_accuracy))
-            print('{{"metric": "precision", "value": {0}}}'.format(dev_precision))
-            print('{{"metric": "recall", "value": {0}}}'.format(dev_recall))
-            print('{{"metric": "f1", "value": {0}}}'.format(dev_f1))
-            print('Metrics for test split:')
-            print('{{"metric": "accuracy", "value": {0}}}'.format(test_accuracy))
-            print('{{"metric": "precision", "value": {0}}}'.format(test_precision))
-            print('{{"metric": "recall", "value": {0}}}'.format(test_recall))
-            print('{{"metric": "f1", "value": {0}}}'.format(test_f1))
+        if dev_f1>best_dev_f1:
+            best_dev_f1 = dev_f1
+            print("Best test f1 update from {} to {}".format(
+                best_test_f1, test_f1))
+            best_test_f1 = test_f1
 
-            if dev_f1>best_dev_f1:
-                best_dev_f1 = dev_f1
-                print("Best test f1 update from {} to {}".format(
-                    best_test_f1, test_f1))
-                best_test_f1 = test_f1
+        if trial is not None:
+            intermediate_value = 1.0 - f1
+            trial.report(intermediate_value, epoch)
+            if trial.should_prune(epoch):
+                raise optuna.structs.TrialPruned()
 
-            if args.env == "tensorboard":
-                summary_writer.add_scalar(
-                    'metric/train_loss', train_loss, epoch)
-                summary_writer.add_scalar('metric/test_loss', dev_loss, epoch)
-                summary_writer.add_scalar('metric/accuracy', dev_accuracy, epoch)
-                summary_writer.add_scalar('metric/precision', dev_precision, epoch)
-                summary_writer.add_scalar('metric/recall', dev_recall, epoch)
-                summary_writer.add_scalar('metric/f1', dev_f1, epoch)
+        # if epoch > 1 and epoch % args.print_sample_cycle == 0 and trial is None:
+        #     print_sample(reader, model, test_data_loader, option)
 
-            if trial is not None:
-                intermediate_value = 1.0 - f1
-                trial.report(intermediate_value, epoch)
-                if trial.should_prune(epoch):
-                    raise optuna.structs.TrialPruned()
-
-            # if epoch > 1 and epoch % args.print_sample_cycle == 0 and trial is None:
-            #     print_sample(reader, model, test_data_loader, option)
-
-            if best_f1 is None or best_f1 < f1:
-                if args.env == "floyd":
-                    print('{{"metric": "best_f1", "value": {0}}}'.format(f1))
-                else:
-                    logger.info(
-                        '{{"metric": "best_f1", "value": {0}}}'.format(f1))
-                if args.env == "tensorboard":
-                    summary_writer.add_scalar('metric/best_f1', f1, epoch)
-
-                best_f1 = f1
-                if trial is None and not DISALLOW_WRITE:
-                    vector_file = args.vectors_path
-                    with open(vector_file, "w") as f:
-                        f.write("{0}\t{1}\n".format(
-                            len(reader.items), option.encode_size))
-                    write_code_vectors(
-                        reader, model, train_data_loader, option, vector_file, "a", None)
-                    write_code_vectors(
-                        reader, model, test_data_loader, option, vector_file,
-                        "a", args.test_result_path)
-                    torch.save(model.state_dict(), path.join(
-                        args.model_path, "code2vec.model"))
-
-            if last_loss is None \
-                    or train_loss < last_loss \
-                    or last_accuracy is None \
-                    or last_accuracy < dev_accuracy:
-                last_loss = train_loss
-                last_accuracy = dev_accuracy
-                bad_count = 0
+        if best_f1 is None or best_f1 < f1:
+            if args.env == "floyd":
+                print('{{"metric": "best_f1", "value": {0}}}'.format(f1))
             else:
-                bad_count += 1
-            if bad_count > 10:
-                print('early stop loss:{0}, bad:{1}'.format(
-                    train_loss, bad_count))
-                # print_sample(reader, model, test_data_loader, option)
-                break
+                logger.info(
+                    '{{"metric": "best_f1", "value": {0}}}'.format(f1))
 
-    finally:
-        if args.env == "tensorboard":
-            summary_writer.close()
+            best_f1 = f1
+            if trial is None and not DISALLOW_WRITE:
+                vector_file = args.vectors_path
+                with open(vector_file, "w") as f:
+                    f.write("{0}\t{1}\n".format(
+                        len(reader.items), option.encode_size))
+                write_code_vectors(
+                    reader, model, train_data_loader, option, vector_file, "a", None)
+                write_code_vectors(
+                    reader, model, test_data_loader, option, vector_file,
+                    "a", args.test_result_path)
+                torch.save(model.state_dict(), path.join(
+                    args.model_path, "code2vec.model"))
+
+        if last_loss is None \
+                or train_loss < last_loss \
+                or last_accuracy is None \
+                or last_accuracy < dev_accuracy:
+            last_loss = train_loss
+            last_accuracy = dev_accuracy
+            bad_count = 0
+        else:
+            bad_count += 1
+        if bad_count > 10:
+            print('early stop loss:{0}, bad:{1}'.format(
+                train_loss, bad_count))
+            # print_sample(reader, model, test_data_loader, option)
+            break
 
     return 1.0 - f1
 
