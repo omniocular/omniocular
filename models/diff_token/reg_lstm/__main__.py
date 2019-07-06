@@ -62,14 +62,11 @@ if __name__ == '__main__':
     np.random.seed(args.seed)
     random.seed(args.seed)
 
-    if not args.cuda:
-        args.gpu = -1
     if torch.cuda.is_available() and args.cuda:
-        print('Note: You are using GPU for training')
         torch.cuda.set_device(args.gpu)
-        torch.cuda.manual_seed(args.seed)
-    if torch.cuda.is_available() and not args.cuda:
-        print('Warning: Using CPU for training')
+        device = torch.device("cuda", args.gpu)
+    else:
+        device = torch.device("cpu")
 
     dataset_map = {
         'VulasDiffToken': VulasDiffToken
@@ -84,7 +81,7 @@ if __name__ == '__main__':
                                                               args.word_vectors_file,
                                                               args.word_vectors_dir,
                                                               batch_size=args.batch_size,
-                                                              device=args.gpu,
+                                                              device=device,
                                                               unk_init=UnknownWordVecCache.unk)
 
     config = deepcopy(args)

@@ -60,14 +60,16 @@ if __name__ == '__main__':
     # Set random seed for reproducibility
     torch.manual_seed(args.seed)
     torch.backends.cudnn.deterministic = True
-    if not args.cuda:
-        args.gpu = -1
+
     if torch.cuda.is_available() and args.cuda:
-        print('Note: You are using GPU for training')
         torch.cuda.set_device(args.gpu)
-        torch.cuda.manual_seed(args.seed)
+        device = torch.device("cuda", args.gpu)
+    else:
+        device = torch.device("cpu")
+
     if torch.cuda.is_available() and not args.cuda:
         print('Warning: Using CPU for training')
+
     np.random.seed(args.seed)
     random.seed(args.seed)
     logger = get_logger()
@@ -80,9 +82,11 @@ if __name__ == '__main__':
         raise ValueError('Unrecognized dataset')
     else:
         dataset_class = dataset_map[args.dataset]
-        train_iter, dev_iter, test_iter = dataset_map[args.dataset].iters(args.data_dir, args.word_vectors_file,
+        train_iter, dev_iter, test_iter = dataset_map[args.dataset].iters(args.data_dir,
+                                                                          args.word_vectors_file,
                                                                           args.word_vectors_dir,
-                                                                          batch_size=args.batch_size, device=args.gpu,
+                                                                          batch_size=args.batch_size,
+                                                                          device=device,
                                                                           unk_init=UnknownWordVecCache.unk)
 
     config = deepcopy(args)
