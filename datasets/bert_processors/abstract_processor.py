@@ -151,7 +151,7 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer,
             tokens += tokens_b + ["[SEP]"]
             segment_ids += [1] * (len(tokens_b) + 1)
 
-        input_ids = tokenizer.convert_tokens_to_ids(tokens)
+        input_ids = tokenizer.convert_tokens_to_hierarchical_ids(tokens)
 
         # The mask has 1 for real tokens and 0 for padding tokens. Only real
         # tokens are attended to.

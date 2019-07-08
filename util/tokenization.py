@@ -108,7 +108,7 @@ class BertTokenizer(object):
             split_tokens = self.wordpiece_tokenizer.tokenize(text)
         return split_tokens
 
-    def convert_tokens_to_ids(self, tokens):
+    def convert_tokens_to_hierarchical_ids(self, tokens):
         """Converts a sequence of tokens into ids using the vocab."""
         ids = []
         for file_tokens in tokens:
@@ -123,6 +123,19 @@ class BertTokenizer(object):
                             " sequence length for this BERT model ({} > {}). Running this"
                             " sequence through BERT will result in indexing errors".format(len(ids[-1][-1]), self.max_len)
                         )
+        return ids
+
+    def convert_tokens_to_ids(self, tokens):
+        """Converts a sequence of tokens into ids using the vocab."""
+        ids = []
+        for token in tokens:
+            ids.append(self.vocab[token])
+        if len(ids) > self.max_len:
+            logger.warning(
+                "Token indices sequence length is longer than the specified maximum "
+                " sequence length for this BERT model ({} > {}). Running this"
+                " sequence through BERT will result in indexing errors".format(len(ids), self.max_len)
+            )
         return ids
 
     def convert_ids_to_tokens(self, ids):

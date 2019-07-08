@@ -23,7 +23,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset, RandomSampler
 from tqdm import tqdm, trange
 
-from models.diff_token.bert.model import BertForPreTraining
+from models.diff_token.bert.bertmodel import BertForPreTraining
 from util.optimization import BertAdam, WarmupLinearSchedule
 from util.tokenization import BertTokenizer
 from embeddings.bert.args import get_args
@@ -344,7 +344,6 @@ def convert_example_to_features(example, max_seq_length, tokenizer):
     tokens.append("[SEP]")
     segment_ids.append(0)
 
-    assert len(tokens_b) > 0
     for token in tokens_b:
         tokens.append(token)
         segment_ids.append(1)
@@ -363,11 +362,6 @@ def convert_example_to_features(example, max_seq_length, tokenizer):
         input_mask.append(0)
         segment_ids.append(0)
         lm_label_ids.append(-1)
-
-    assert len(input_ids) == max_seq_length
-    assert len(input_mask) == max_seq_length
-    assert len(segment_ids) == max_seq_length
-    assert len(lm_label_ids) == max_seq_length
 
     if example.guid < 5:
         print("*** Example ***")
@@ -444,7 +438,7 @@ if __name__ == "__main__":
         len(train_dataset) / args.batch_size / args.gradient_accumulation_steps) * args.epochs
 
     # Prepare model
-    model = BertForPreTraining.from_pretrained(args.model, savedir=args.output_dir)
+    model = BertForPreTraining.from_pretrained(args.model, savedir=args.output_dir, dropout=args.dropout)
     if args.fp16:
         model.half()
     model.to(device)

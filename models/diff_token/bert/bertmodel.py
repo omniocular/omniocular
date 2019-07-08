@@ -582,7 +582,7 @@ class BertPreTrainedModel(nn.Module):
         config_file = os.path.join(serialization_dir, CONFIG_NAME)
         config = BertConfig.from_json_file(config_file)
         config.hidden_dropout_prob = kwargs["dropout"]
-        del kwargs["dropout"] #urgh!
+
         print(config)
         logger.info("Model config {}".format(config))
         # Instantiate model.
@@ -846,7 +846,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
     logits = model(input_ids, token_type_ids, input_mask)
     ```
     """
-    def __init__(self, config, num_labels):
+    def __init__(self, config, num_labels, **kwargs):
         super(BertForSequenceClassification, self).__init__(config)
         self.config = config
         self.num_labels = num_labels
