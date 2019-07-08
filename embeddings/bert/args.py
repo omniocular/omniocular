@@ -9,6 +9,7 @@ def get_args():
     parser.add_argument("--epochs", default=3.0, type=float)
     parser.add_argument("--lr", default=3e-5, type=float, help="initial learning rate for adam")
     parser.add_argument('--seed', type=int, default=42, help="random seed for initialization")
+    parser.add_argument('--dropout', default=0.5, type=float, help='dropout rate for finetuning')\
 
     parser.add_argument("--do-lower-case", action='store_true', help="lower case the input text")
     parser.add_argument("--max-seq-length", default=64, type=int, help="maximum input length after tokenization")
