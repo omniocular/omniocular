@@ -7,8 +7,9 @@ class TrainerFactory(object):
     Get the corresponding Trainer class for a particular dataset.
     """
     trainer_map = {
+        'SpringDiffToken': DiffTokenTrainer,
         'VulasDiffToken': DiffTokenTrainer,
-        'VulasPairedToken': PairedTokenTrainer
+        'VulasPairedToken': PairedTokenTrainer,
     }
 
     @staticmethod

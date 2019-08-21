@@ -7,9 +7,9 @@ class EvaluatorFactory(object):
     Get the corresponding Evaluator class for a particular dataset.
     """
     evaluator_map = {
+        'SpringDiffToken': DiffTokenEvaluator,
         'VulasDiffToken': DiffTokenEvaluator,
         'VulasPairedToken': PairedTokenEvaluator
-
     }
 
     @staticmethod
