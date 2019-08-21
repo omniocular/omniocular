@@ -5,8 +5,9 @@ from copy import deepcopy
 import numpy as np
 import torch
 
-from common.evaluation import EvaluatorFactory
+from common.evaluate import EvaluatorFactory
 from common.train import TrainerFactory
+from datasets.spring_diff_token import SpringDiffToken
 from datasets.vulas_diff_token import VulasDiffToken
 from models.diff_token.reg_cnn.args import get_args
 from models.diff_token.reg_cnn.model import RegCNN
@@ -71,6 +72,7 @@ if __name__ == '__main__':
     logger = get_logger()
 
     dataset_map = {
+        'SpringDiffToken': SpringDiffToken,
         'VulasDiffToken': VulasDiffToken
     }
 

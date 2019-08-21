@@ -5,12 +5,12 @@ from copy import deepcopy
 import numpy as np
 import torch
 
-from common.evaluation import EvaluatorFactory
+from common.evaluate import EvaluatorFactory
 from common.train import TrainerFactory
 from models.diff_token.hr_cnn.args import get_args
 from models.diff_token.hr_cnn.model import HRCNN
 from datasets.vulas_diff_token import VulasDiffTokenHierarchical
-
+from datasets.spring_diff_token import SpringDiffTokenHierarchical
 
 class UnknownWordVecCache(object):
     """
@@ -75,6 +75,7 @@ if __name__ == '__main__':
     logger = get_logger()
 
     dataset_map = {
+        'SpringDiffToken': SpringDiffTokenHierarchical,
         'VulasDiffToken': VulasDiffTokenHierarchical
     }
 
