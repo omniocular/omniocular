@@ -6,7 +6,7 @@ import models.diff_token.args
 def get_args():
     parser = models.diff_token.args.get_args()
 
-    parser.add_argument('--dataset', type=str, default='VulasDiffToken', choices=['VulasDiffToken', 'SpringDiffToken'])
+    parser.add_argument('--dataset', type=str, default='VulasDiffToken', choices=['SpringDiffToken', 'VulasDiffToken'])
     parser.add_argument('--mode', type=str, default='multichannel', choices=['rand', 'static', 'non-static', 'multichannel'])
     parser.add_argument('--output-channel', type=int, default=100)
     parser.add_argument('--words-dim', type=int, default=300)
@@ -20,11 +20,11 @@ def get_args():
     parser.add_argument('--beta-ema', type=float, default=0, help="for temporal averaging")
     parser.add_argument('--embed-droprate', type=float, default=0.0, help="for embedded dropout")
     parser.add_argument('--batchnorm', action='store_true')
-    parser.add_argument('--dynamic-pool', action='store_true')
     parser.add_argument('--attention', action='store_true')
-    parser.add_argument('--bottleneck-units', type=int, default=100)
+    parser.add_argument('--dynamic-pool', action='store_true')
     parser.add_argument('--dynamic-pool-length', type=int, default=8)
     parser.add_argument('--bottleneck-layer', action='store_true')
+    parser.add_argument('--bottleneck-units', type=int, default=100)
 
     parser.add_argument('--word-vectors-dir', default=os.path.join(os.pardir, 'omniocular-data', 'embeddings'))
     parser.add_argument('--word-vectors-file', default='java1k_size300_min10.txt')

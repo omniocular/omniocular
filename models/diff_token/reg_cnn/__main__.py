@@ -46,7 +46,7 @@ def evaluate_dataset(split_name, dataset_cls, model, embedding, loader, batch_si
     if hasattr(saved_model_evaluator, 'is_multilabel'):
         saved_model_evaluator.is_multilabel = is_multilabel
 
-    scores, metric_names = saved_model_evaluator.get_scores()
+    scores, metric_names = saved_model_evaluator.get_scores(micro_average=False)
     print('Evaluation metrics for', split_name)
     print(metric_names)
     print(scores)

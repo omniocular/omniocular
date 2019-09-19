@@ -13,7 +13,7 @@ class DiffTokenEvaluator(Evaluator):
         self.ignore_lengths = False
         self.is_multilabel = False
 
-    def get_scores(self):
+    def get_scores(self, micro_average=True):
         self.model.eval()
         self.data_loader.init_epoch()
         total_loss = 0
@@ -52,10 +52,16 @@ class DiffTokenEvaluator(Evaluator):
         target_labels = np.array(target_labels)
 
         accuracy = metrics.accuracy_score(target_labels, predicted_labels)
-        precision = metrics.precision_score(target_labels, predicted_labels, average='micro')
-        recall = metrics.recall_score(target_labels, predicted_labels, average='micro')
-        f1 = metrics.f1_score(target_labels, predicted_labels, average='micro')
         avg_loss = total_loss / len(self.data_loader.dataset.examples)
+
+        if micro_average:
+            precision = metrics.precision_score(target_labels, predicted_labels, average='micro')
+            recall = metrics.recall_score(target_labels, predicted_labels, average='micro')
+            f1 = metrics.f1_score(target_labels, predicted_labels, average='micro')
+        else:
+            precision = metrics.precision_score(target_labels, predicted_labels, average=None)
+            recall = metrics.recall_score(target_labels, predicted_labels, average=None)
+            f1 = metrics.f1_score(target_labels, predicted_labels, average=None)
 
         if hasattr(self.model, 'beta_ema') and self.model.beta_ema > 0:
             self.model.load_params(old_params)
