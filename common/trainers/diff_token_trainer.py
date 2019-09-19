@@ -12,7 +12,8 @@ from .generic_trainer import Trainer
 class DiffTokenTrainer(Trainer):
 
     def __init__(self, model, embedding, train_loader, trainer_config, train_evaluator, test_evaluator, dev_evaluator):
-        super(DiffTokenTrainer, self).__init__(model, embedding, train_loader, trainer_config, train_evaluator, test_evaluator, dev_evaluator)
+        super(DiffTokenTrainer, self).__init__(model, embedding, train_loader, trainer_config, train_evaluator,
+                                               test_evaluator, dev_evaluator)
         self.config = trainer_config
         self.early_stop = False
         self.best_dev_f1 = 0
@@ -72,9 +73,9 @@ class DiffTokenTrainer(Trainer):
 
             if self.iterations % self.log_interval == 1:
                 print(self.log_template.format(time.time() - self.start,
-                                          epoch, self.iterations, 1 + batch_idx, len(self.train_loader),
-                                          100. * (1 + batch_idx) / len(self.train_loader), loss.item(),
-                                          train_acc))
+                                               epoch, self.iterations, 1 + batch_idx, len(self.train_loader),
+                                               100. * (1 + batch_idx) / len(self.train_loader), loss.item(),
+                                               train_acc))
 
     def train(self, epochs):
         self.start = time.time()

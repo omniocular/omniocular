@@ -5,7 +5,7 @@ from copy import deepcopy
 import numpy as np
 import torch
 
-from common.evaluation import EvaluatorFactory
+from common.evaluate import EvaluatorFactory
 from common.train import TrainerFactory
 from models.paired_token.hr_cnn.args import get_args
 from models.paired_token.hr_cnn.model import HRCNN

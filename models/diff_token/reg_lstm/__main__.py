@@ -1,12 +1,14 @@
-from copy import deepcopy
 import logging
 import random
+from copy import deepcopy
 
 import numpy as np
 import torch
 
-from common.evaluation import EvaluatorFactory
+from common.evaluate import EvaluatorFactory
 from common.train import TrainerFactory
+from datasets.apache_diff_token import ApacheDiffToken
+from datasets.spring_diff_token import SpringDiffToken
 from datasets.vulas_diff_token import VulasDiffToken
 from models.diff_token.reg_lstm.args import get_args
 from models.diff_token.reg_lstm.model import RegLSTM
@@ -45,7 +47,7 @@ def evaluate_dataset(split_name, dataset_cls, model, embedding, loader, batch_si
     if hasattr(saved_model_evaluator, 'is_multilabel'):
         saved_model_evaluator.is_multilabel = is_multilabel
 
-    scores, metric_names = saved_model_evaluator.get_scores()
+    scores, metric_names = saved_model_evaluator.get_scores(micro_average=False)
     print('Evaluation metrics for', split_name)
     print(metric_names)
     print(scores)
@@ -69,7 +71,9 @@ if __name__ == '__main__':
         device = torch.device("cpu")
 
     dataset_map = {
-        'VulasDiffToken': VulasDiffToken
+        'SpringDiffToken': SpringDiffToken,
+        'VulasDiffToken': VulasDiffToken,
+        'ApacheDiffToken': ApacheDiffToken
     }
 
     if args.dataset not in dataset_map:
@@ -129,7 +133,9 @@ if __name__ == '__main__':
         'is_multilabel': dataset_class.IS_MULTILABEL
     }
 
-    trainer = TrainerFactory.get_trainer(args.dataset, model, None, train_iter, trainer_config, train_evaluator, test_evaluator, dev_evaluator)
+    trainer = TrainerFactory.get_trainer(args.dataset, model, None, train_iter,
+                                         trainer_config, train_evaluator,
+                                         test_evaluator, dev_evaluator)
 
     if not args.trained_model:
         trainer.train(args.epochs)

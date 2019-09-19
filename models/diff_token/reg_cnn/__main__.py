@@ -5,8 +5,9 @@ from copy import deepcopy
 import numpy as np
 import torch
 
-from common.evaluation import EvaluatorFactory
+from common.evaluate import EvaluatorFactory
 from common.train import TrainerFactory
+from datasets.spring_diff_token import SpringDiffToken
 from datasets.vulas_diff_token import VulasDiffToken
 from models.diff_token.reg_cnn.args import get_args
 from models.diff_token.reg_cnn.model import RegCNN
@@ -45,7 +46,7 @@ def evaluate_dataset(split_name, dataset_cls, model, embedding, loader, batch_si
     if hasattr(saved_model_evaluator, 'is_multilabel'):
         saved_model_evaluator.is_multilabel = is_multilabel
 
-    scores, metric_names = saved_model_evaluator.get_scores()
+    scores, metric_names = saved_model_evaluator.get_scores(micro_average=False)
     print('Evaluation metrics for', split_name)
     print(metric_names)
     print(scores)
@@ -71,6 +72,7 @@ if __name__ == '__main__':
     logger = get_logger()
 
     dataset_map = {
+        'SpringDiffToken': SpringDiffToken,
         'VulasDiffToken': VulasDiffToken
     }
 
