@@ -60,14 +60,13 @@ Datasets, along with embeddings should be placed in the `omniocular-data` folder
 .
 ├── omniocular
 └── omniocular-data
+    ├── embeddings
+    └── datasets
 ```
 
-After cloning the omniocular-data repo, you need to unzip the embeddings and run the preprocessing script:
+After cloning the omniocular-data repo, check if you have a text file containing the embeddings for Java:
 
 ```bash
-cd omniocular-data/embeddings/word2vec 
-gzip -d java1k_size300_min10.bin.bin.gz 
-python bin2txt.py java1k_size300_min10.bin.bin java1k_size300_min10.bin.txt 
+cd omniocular-data/embeddings/
+ls java1k_size300_min10.bin.txt 
 ```
-
-**If you are an internal Omniocular contributor using the machines in the lab, follow the instructions [here](docs/internal-instructions.md).**
