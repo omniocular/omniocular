@@ -7,33 +7,36 @@ from torchtext.data import NestedField, Field, TabularDataset
 from torchtext.data.iterator import BucketIterator
 from torchtext.vocab import Vectors
 
-from util.preprocess import split_string, remove_field, process_labels, split_json, split_json_string
+from util.preprocess import remove_field, process_labels, split_json, split_string
 
 # Increase the upper limit on parsed fields
 csv.field_size_limit(sys.maxsize)
 
 
-class VulasDiffToken(TabularDataset):
-    NAME = 'VulasDiffToken'
+class ApachePairedToken(TabularDataset):
+    NAME = 'ApachePairedToken'
     NUM_CLASSES = 2
     IS_MULTILABEL = False
 
     REPO_FIELD = Field(sequential=False, use_vocab=False, batch_first=True, preprocessing=remove_field)
     SHA_FIELD = Field(sequential=False, use_vocab=False, batch_first=True, preprocessing=remove_field)
-    CODE_FIELD = Field(batch_first=True, tokenize=split_json_string, include_lengths=True)
+    CODE1_FIELD = Field(batch_first=True, tokenize=split_string, include_lengths=True)
+    CODE2_FIELD = Field(batch_first=True, tokenize=split_string, include_lengths=True)
     LABEL_FIELD = Field(sequential=False, use_vocab=False, batch_first=True, preprocessing=process_labels)
 
     @staticmethod
     def sort_key(ex):
-        return len(ex.code)
+        return len(ex.code1) + len(ex.code2)
 
     @classmethod
-    def splits(cls, path, train=os.path.join('vulas_diff_token', 'train.tsv'),
-               validation=os.path.join('vulas_diff_token', 'test.tsv'),
-               test=os.path.join('vulas_diff_token', 'test.tsv'), **kwargs):
-        return super(VulasDiffToken, cls).splits(
+    def splits(cls, path, train=os.path.join('apache_paired_token', 'train.tsv'),
+               validation=os.path.join('apache_paired_token', 'test.tsv'),
+               test=os.path.join('apache_paired_token', 'test.tsv'), **kwargs):
+        return super(ApachePairedToken, cls).splits(
             path, train=train, validation=validation, test=test, format='tsv',
-            fields=[('repo', cls.REPO_FIELD), ('sha', cls.SHA_FIELD), ('code', cls.CODE_FIELD), ('label', cls.LABEL_FIELD)]
+            fields=[('repo', cls.REPO_FIELD), ('sha', cls.SHA_FIELD),
+                    ('code1', cls.CODE1_FIELD), ('code2', cls.CODE2_FIELD),
+                    ('label', cls.LABEL_FIELD)]
         )
 
     @classmethod
@@ -53,11 +56,14 @@ class VulasDiffToken(TabularDataset):
             vectors = Vectors(name=vectors_name, cache=vectors_cache, unk_init=unk_init)
 
         train, val, test = cls.splits(path)
-        cls.CODE_FIELD.build_vocab(train, val, test, vectors=vectors)
+        cls.CODE1_FIELD.build_vocab(train, val, test, vectors=vectors)
+        cls.CODE2_FIELD.build_vocab(train, val, test, vectors=vectors)
         return BucketIterator.splits((train, val, test), batch_size=batch_size, repeat=False, shuffle=shuffle,
                                      sort_within_batch=True, device=device)
 
 
-class VulasDiffTokenHierarchical(VulasDiffToken):
-    NESTING_FIELD = Field(batch_first=True, tokenize=split_string)
-    CODE_FIELD = NestedField(NESTING_FIELD, tokenize=split_json)
+class ApachePairedTokenHierarchical(ApachePairedToken):
+    NESTING1_FIELD = Field(batch_first=True, tokenize=split_string)
+    CODE1_FIELD = NestedField(NESTING1_FIELD, tokenize=split_json)
+    NESTING2_FIELD = Field(batch_first=True, tokenize=split_string)
+    CODE2_FIELD = NestedField(NESTING2_FIELD, tokenize=split_json)

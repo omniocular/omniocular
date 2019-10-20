@@ -16,15 +16,7 @@ class HRBertForSequenceClassification(nn.Module):
             dropout=args.dropout
         )
         self.dropout = nn.Dropout(args.dropout)
-        self.conv = nn.Conv1d(
-            self.bert.config.hidden_size,
-            self.bert.config.hidden_size,
-            args.max_line
-        )
         self.classifier = nn.Linear(self.bert.config.hidden_size, args.num_labels)
-        if args.freeze:
-            for param in self.bert.parameters():
-                param.requires_grad = False
 
     def forward(self, batch):
         """
@@ -46,11 +38,11 @@ class HRBertForSequenceClassification(nn.Module):
                 line_embs.append(line_emb)
 
             file_emb = torch.stack(line_embs).permute(1, 2, 0)  # (batch_size, hidden_size, lines)
-            file_emb = self.conv(file_emb).squeeze(2) # (batch_size, hidden_size)
-            # file_emb = F.max_pool1d(file_emb, file_emb.size(2)).squeeze(2)  # (batch_size, hidden_size)
+            file_emb = F.max_pool1d(file_emb, file_emb.size(2)).squeeze(2)  # (batch_size, hidden_size)
             file_embs.append(file_emb)
 
         coll_emb = torch.stack(file_embs).permute(1, 2, 0)  # (batch_size, files, hidden_size)
         coll_emb = F.max_pool1d(coll_emb, coll_emb.size(2)).squeeze(2)  # (batch_size, hidden_size)
+        # coll_emb = torch.squeeze(coll_emb, 2)
         logits = self.classifier(coll_emb)
         return logits

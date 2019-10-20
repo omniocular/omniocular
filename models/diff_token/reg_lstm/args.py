@@ -6,7 +6,7 @@ import models.diff_token.args
 def get_args():
     parser = models.diff_token.args.get_args()
 
-    parser.add_argument('--dataset', type=str, default='VulasDiffToken', choices=['ApacheDiffToken', 'SpringDiffToken', 'VulasDiffToken'])
+    parser.add_argument('--dataset', type=str, default='ApacheDiffToken', choices=['ApacheDiffToken', 'SpringDiffToken'])
     parser.add_argument('--mode', type=str, default='static', choices=['rand', 'static', 'non-static'])
     parser.add_argument('--bidirectional', action='store_true')
     parser.add_argument('--bottleneck-layer', action='store_true')

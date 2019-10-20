@@ -8,9 +8,8 @@ class EvaluatorFactory(object):
     """
     evaluator_map = {
         'ApacheDiffToken': DiffTokenEvaluator,
-        'SpringDiffToken': DiffTokenEvaluator,
-        'VulasDiffToken': DiffTokenEvaluator,
-        'VulasPairedToken': PairedTokenEvaluator
+        'ApachePairedToken': PairedTokenEvaluator,
+        'SpringDiffToken': DiffTokenEvaluator
     }
 
     @staticmethod

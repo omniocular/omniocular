@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 from torch.utils.data import DataLoader
 
-from datasets.vulas_diff_paths import DatasetReader, DatasetBuilder
+from datasets.apache_paired_paths import DatasetReader, DatasetBuilder
 from embeddings.code2vec.args import get_args
 from embeddings.code2vec.model import Code2Vec
 
