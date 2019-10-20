@@ -9,7 +9,7 @@ from common.evaluate import EvaluatorFactory
 from common.train import TrainerFactory
 from models.paired_token.hr_cnn.args import get_args
 from models.paired_token.hr_cnn.model import HRCNN
-from datasets.vulas_paired_token import VulasPairedTokenHierarchical
+from datasets.apache_paired_token import ApachePairedTokenHierarchical
 
 
 class UnknownWordVecCache(object):
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     logger = get_logger()
 
     dataset_map = {
-        'VulasPairedToken': VulasPairedTokenHierarchical
+        'ApachePairedToken': ApachePairedTokenHierarchical
     }
 
     if args.dataset not in dataset_map:

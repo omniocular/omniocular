@@ -7,14 +7,13 @@ def get_args():
     parser = models.diff_token.args.get_args()
 
     parser.add_argument('--model', default='bert-base-cased', type=str, required=False)
-    parser.add_argument('--dataset', type=str, default='VulasDiffToken', choices=['VulasDiffToken'])
+    parser.add_argument('--dataset', type=str, default='ApacheDiffToken', choices=['ApacheDiffToken'])
     parser.add_argument('--save-path', type=str, default=os.path.join('model_checkpoints', 'bert'))
     parser.add_argument('--cache-dir', default='cache', type=str)
     parser.add_argument('--pretrained-model', default=None, type=str)
     parser.add_argument('--trained-model', default=None, type=str)
     parser.add_argument('--local-rank', type=int, default=-1, help='local rank for distributed training')
     parser.add_argument('--fp16', action='store_true', help='use 16-bit floating point precision')
-    parser.add_argument('--freeze', action='store_true', help='freeze parameters of bert')
     parser.add_argument('--dropout', default=0.5, type=float, help='dropout rate for finetuning')
 
     parser.add_argument('--max-seq-length',

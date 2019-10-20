@@ -9,7 +9,6 @@ from common.evaluate import EvaluatorFactory
 from common.train import TrainerFactory
 from datasets.apache_diff_token import ApacheDiffTokenHierarchical
 from datasets.spring_diff_token import SpringDiffTokenHierarchical
-from datasets.vulas_diff_token import VulasDiffTokenHierarchical
 from models.diff_token.hr_cnn.args import get_args
 from models.diff_token.hr_cnn.model import HRCNN
 
@@ -79,7 +78,6 @@ if __name__ == '__main__':
     dataset_map = {
         'ApacheDiffToken': ApacheDiffTokenHierarchical,
         'SpringDiffToken': SpringDiffTokenHierarchical,
-        'VulasDiffToken': VulasDiffTokenHierarchical,
     }
 
     if args.dataset not in dataset_map:

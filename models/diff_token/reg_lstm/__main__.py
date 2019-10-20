@@ -9,7 +9,6 @@ from common.evaluate import EvaluatorFactory
 from common.train import TrainerFactory
 from datasets.apache_diff_token import ApacheDiffToken
 from datasets.spring_diff_token import SpringDiffToken
-from datasets.vulas_diff_token import VulasDiffToken
 from models.diff_token.reg_lstm.args import get_args
 from models.diff_token.reg_lstm.model import RegLSTM
 
@@ -71,9 +70,8 @@ if __name__ == '__main__':
         device = torch.device("cpu")
 
     dataset_map = {
-        'SpringDiffToken': SpringDiffToken,
-        'VulasDiffToken': VulasDiffToken,
-        'ApacheDiffToken': ApacheDiffToken
+        'ApacheDiffToken': ApacheDiffToken,
+        'SpringDiffToken': SpringDiffToken
     }
 
     if args.dataset not in dataset_map:

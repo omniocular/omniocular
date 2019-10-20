@@ -4,7 +4,7 @@ import os
 path_contexts_file = "astminer_output/path_contexts.csv"
 tokens_file = "astminer_output/tokens.csv"
 paths_file = "astminer_output/paths.csv"
-split_path = "/mnt/collections/j9xin/astminerGT/testData/vulas_diff/"
+split_path = "apache_paired_paths"
 
 def rec_dd():
     return defaultdict(rec_dd) #magic!

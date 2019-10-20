@@ -7,7 +7,7 @@ import torch
 
 from common.evaluators.bert_evaluator import HRBertEvaluator
 from common.trainers.bert_trainer import HRBertTrainer
-from datasets.bert_processors.vulas_diff_token import VulasDiffTokenProcessor
+from datasets.bert_processors.apache_diff_token import ApacheDiffTokenProcessor
 from models.diff_token.bert.args import get_args
 from models.diff_token.bert.hrmodel import HRBertForSequenceClassification
 from util.io import PYTORCH_PRETRAINED_BERT_CACHE
@@ -55,7 +55,7 @@ if __name__ == '__main__':
         torch.cuda.manual_seed_all(args.seed)
 
     dataset_map = {
-        'VulasDiffToken': VulasDiffTokenProcessor
+        'ApacheDiffToken': ApacheDiffTokenProcessor
     }
 
     if args.gradient_accumulation_steps < 1:
@@ -108,15 +108,9 @@ if __name__ == '__main__':
     param_optimizer = list(model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
-        {'params':
-            [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)],
-         'weight_decay':
-            0.01},
-        {'params':
-            [p for n, p in param_optimizer if any(nd in n for nd in no_decay)],
-         'weight_decay':
-            0.0}
-        ]
+        {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
+        {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}]
+
     if args.fp16:
         try:
             from apex.optimizers import FP16_Optimizer

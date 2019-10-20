@@ -8,9 +8,8 @@ class TrainerFactory(object):
     """
     trainer_map = {
         'ApacheDiffToken': DiffTokenTrainer,
-        'SpringDiffToken': DiffTokenTrainer,
-        'VulasDiffToken': DiffTokenTrainer,
-        'VulasPairedToken': PairedTokenTrainer,
+        'ApachePairedToken': PairedTokenTrainer,
+        'SpringDiffToken': DiffTokenTrainer
     }
 
     @staticmethod
