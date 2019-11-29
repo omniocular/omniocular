@@ -6,6 +6,5 @@ Cython==0.28.2
 scikit-learn==0.19.1
 scipy==1.0.0
 timeout-decorator==0.4.1
-torch==0.4.1
 torchtext==0.2.3
 tqdm>=4.23,<4.23.99
